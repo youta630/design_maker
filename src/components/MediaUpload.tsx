@@ -83,12 +83,34 @@ export default function MediaUpload({ onMediaUpload, isLoading, resetTrigger }: 
           <div className="space-y-6">
             <div className="relative">
               {fileType === 'video' ? (
-                <video 
-                  src={preview} 
-                  className="max-h-72 mx-auto rounded-xl shadow-lg border border-gray-200"
-                  controls
-                  style={{ maxWidth: '100%' }}
-                />
+                <div className="max-h-72 w-full max-w-md mx-auto bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl shadow-lg flex flex-col items-center justify-center p-8">
+                  {/* Video Icon */}
+                  <div className="mb-4">
+                    <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  
+                  {/* File Name */}
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2 text-center break-words">
+                    {selectedFile?.name || 'Video File'}
+                  </h3>
+                  
+                  {/* File Info */}
+                  <div className="text-sm text-gray-600 space-y-1 text-center">
+                    {selectedFile && (
+                      <>
+                        <p className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
+                          {selectedFile.type}
+                        </p>
+                        <p>
+                          {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  
+                </div>
               ) : (
                 <Image 
                   src={preview} 

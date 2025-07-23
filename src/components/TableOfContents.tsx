@@ -173,14 +173,6 @@ export default function TableOfContents({
         )}
       </div>
 
-      {/* Footer Info */}
-      {toc.length > 0 && (
-        <div className="sticky bottom-0 bg-black border-t border-gray-200 px-4 py-2">
-          <p className="text-xs text-white font-mono">
-            {toc.length} section{toc.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-      )}
     </nav>
   );
 }

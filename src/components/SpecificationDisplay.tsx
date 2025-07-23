@@ -227,13 +227,7 @@ export default function SpecificationDisplay({
 
         {/* Footer */}
         <div className="bg-white border-t border-gray-200 p-4">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <span>{sections.length} section{sections.length !== 1 ? 's' : ''}</span>
-              <span>•</span>
-              <span>{openSections.size} open</span>
-            </div>
-            
+          <div className="max-w-4xl mx-auto flex items-center justify-end">
             <div className="flex items-center space-x-2 text-xs text-gray-500">
               <div className="flex items-center space-x-1">
                 <div className="w-2 h-2 bg-black rounded-full"></div>

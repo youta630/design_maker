@@ -19,6 +19,93 @@ const genAI = process.env.GEMINI_API_KEY
 // Simple in-memory rate limiting (for production, use Redis)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
+// Image analysis prompt - focused on static design recreation
+function getImageAnalysisPrompt(outputLanguage: string): string {
+  return `Analyze the following UI design image in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design.
+
+# Analysis Areas
+1. **Overall Structure**: Basic layout composition (header, main content, sidebar, footer, etc.)
+2. **UI Components**: All components visible in the image (buttons, forms, cards, navigation, etc.)
+3. **Visual Properties**: Colors, fonts, sizes, spacing, border radius, shadows, and other styling details
+4. **Layout Information**: Positioning relationships between elements and responsive design considerations
+5. **Interactive Elements**: Inferred click/hover behaviors and user interactions based on visual cues
+6. **Implementation Technology**: Recommended implementation approaches (CSS, JavaScript, libraries, frameworks)
+
+# Output Format Requirements
+- Structured in Markdown format with clear headings
+- Use tables and bullet points for organization
+- Include implementation priority levels (High/Medium/Low)
+- Provide implementation guidance without writing actual code
+- Focus on describing HOW to implement rather than providing code samples
+
+# Instructions
+- Base analysis strictly on what is visible in the image
+- Minimize speculation and assumptions
+- Provide specific measurements and values when identifiable
+- Consider modern web development best practices
+- Exclude any references to Three.js or 3D elements unless explicitly shown
+- Use professional, technical language suitable for developers
+- **CRITICAL: You MUST output the entire specification document in ${outputLanguage}. Do not use any other language.**
+
+Please analyze the image and generate a comprehensive specification document focused on design recreation.
+
+IMPORTANT: Respond entirely in ${outputLanguage}.`;
+}
+
+// Video analysis prompt - focused on motion, animation, and 3D elements
+function getVideoAnalysisPrompt(outputLanguage: string, language: string): string {
+  const intro = language === 'ja' 
+    ? 'この動画で見られる画面を再現するために必要な実装詳細を分析し、開発者が忠実に再現できる包括的な仕様書をMarkdown形式で作成してください。'
+    : 'Analyze the following UI design video in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design shown in the video.';
+
+  return `${intro}
+
+# Analysis Areas
+1. **Overall Structure**: Basic layout composition (header, main content, sidebar, footer, etc.)
+2. **UI Components**: All components visible in the video frames (buttons, forms, cards, navigation, etc.)
+3. **Visual Properties**: Colors, fonts, sizes, spacing, border radius, shadows, and other styling details - Provide specific pixel values for margins, padding, and positioning
+4. **Layout Information**: Positioning relationships between elements and responsive design considerations
+5. **Interactive Elements**: User interactions, animations, and transitions shown in the video
+6. **Implementation Technology**: Recommended implementation approaches (CSS, JavaScript, libraries, frameworks) - Specify exact libraries like Three.js for 3D elements
+7. **Motion & Animation Analysis**: Detailed breakdown of all moving elements, their trajectories, timing, easing functions, and animation types (CSS transitions, keyframes, JavaScript animations)
+8. **3D Elements & Spatial Dynamics**: If 3D elements are present, describe their geometry, materials, lighting, camera movements, and spatial relationships. Specify implementation using Three.js, WebGL, or similar technologies
+9. **Camera/Viewport Changes**: Document any changes in viewing angle, zoom levels, perspective shifts, or camera movements throughout the video
+10. **Temporal Sequence**: Frame-by-frame analysis of key animation moments, describing what moves, when, and how (duration, delay, sequence)
+
+# Output Format Requirements
+- Structured in Markdown format with clear headings
+- Use tables and bullet points for organization
+- Include implementation priority levels (High/Medium/Low)
+- Provide implementation guidance without writing actual code
+- Focus on describing HOW to implement rather than providing code samples
+- For videos: Focus on MOTION and CHANGE rather than static descriptions
+- Document animation timing: start/end frames, duration, easing curves
+- Describe movement patterns: linear, curved, rotational, scaling, morphing
+- Identify keyframes and transition states for complex animations
+- Specify 3D properties: rotation angles, camera positions, lighting changes
+- Note performance considerations for animations (GPU acceleration, frame rates)
+
+# Instructions
+- Base analysis strictly on what is visible in the video
+- Minimize speculation and assumptions
+- Provide specific measurements and values when identifiable
+- Consider modern web development best practices
+- INCLUDE references to Three.js or other 3D libraries when 3D elements are visible
+- Use professional, technical language suitable for developers
+- **CRITICAL: You MUST output the entire specification document in ${outputLanguage}. Do not use any other language.**
+- For videos: Prioritize DYNAMIC ELEMENTS over static UI components
+- Track element transformations: position changes, size variations, opacity shifts
+- Document camera/viewport movements: panning, zooming, rotating, perspective changes
+- Identify animation triggers: user interactions, time-based, scroll-based, or automatic
+- Describe 3D scene composition: object placement, lighting setup, material properties
+- Note any physics simulations: gravity, collision, particle systems, fluid dynamics
+- Focus on the TECHNICAL RECREATION of movements rather than describing user actions
+
+Please analyze the video and generate a comprehensive specification document focused on implementation recreation.
+
+IMPORTANT: Respond entirely in ${outputLanguage}.`;
+}
+
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const windowMs = 60 * 1000; // 1 minute
@@ -138,46 +225,8 @@ export async function POST(request: NextRequest) {
                           language === 'ko' ? '한국어' : 
                           language === 'zh' ? '中文' : '日本語';
     
-    const prompt = `${isVideo ? 
-      (language === 'ja' ? 'この動画で見られる画面を再現するために必要な実装詳細を分析し、開発者が忠実に再現できる包括的な仕様書をMarkdown形式で作成してください。' : 
-       'Analyze the following UI design video in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design shown in the video.') : 
-      'Analyze the following UI design image in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design.'}
-
-# Analysis Areas
-1. **Overall Structure**: Basic layout composition (header, main content, sidebar, footer, etc.)
-2. **UI Components**: All components visible in the ${isVideo ? 'video frames' : 'image'} (buttons, forms, cards, navigation, etc.)
-3. **Visual Properties**: Colors, fonts, sizes, spacing, border radius, shadows, and other styling details${isVideo ? ' - Provide specific pixel values for margins, padding, and positioning' : ''}
-4. **Layout Information**: Positioning relationships between elements and responsive design considerations
-5. **Interactive Elements**: ${isVideo ? 'User interactions, animations, and transitions shown in the video' : 'Inferred click/hover behaviors and user interactions'}
-6. **Implementation Technology**: Recommended implementation approaches (CSS, JavaScript, libraries, frameworks)${isVideo ? ' - Specify exact libraries like Three.js for 3D elements' : ''}
-${isVideo ? '7. **3D Elements & Animations**: Detailed description of 3D objects, their colors, positioning, materials, and animations. Include specific implementation approaches using Three.js or similar libraries' : ''}
-${isVideo ? '8. **Animation & Interactions**: Describe the animations, transitions, and user flows demonstrated in the video with technical implementation details' : ''}
-
-# Output Format Requirements
-- Structured in Markdown format with clear headings
-- Use tables and bullet points for organization
-- Include implementation priority levels (High/Medium/Low)
-- Provide implementation guidance without writing actual code
-- Focus on describing HOW to implement rather than providing code samples
-${isVideo ? '- For videos: Focus on technical implementation details rather than describing user actions' : ''}
-${isVideo ? '- Provide specific measurements (px, rem, %) wherever visible' : ''}
-${isVideo ? '- Describe 3D elements in detail: colors, shapes, materials, lighting, positioning' : ''}
-
-# Instructions
-- Base analysis strictly on what is visible in the ${isVideo ? 'video' : 'image'}
-- Minimize speculation and assumptions
-- Provide specific measurements and values when identifiable
-- Consider modern web development best practices
-${isVideo ? '- INCLUDE references to Three.js or other 3D libraries when 3D elements are visible' : '- Exclude any references to Three.js or 3D elements unless explicitly shown'}
-- Use professional, technical language suitable for developers
-- **CRITICAL: You MUST output the entire specification document in ${outputLanguage}. Do not use any other language.**
-${isVideo ? '- For videos: Focus on "HOW TO RECREATE" this interface rather than "WHAT HAPPENS" in the video' : ''}
-${isVideo ? '- Analyze each frame for implementation details: exact colors, positions, sizes, and animations' : ''}
-
-Please analyze the ${isVideo ? 'video' : 'image'} and generate a comprehensive specification document focused on ${isVideo ? 'implementation recreation' : 'design recreation'}.
-
-IMPORTANT: Respond entirely in ${outputLanguage}.
-`;
+    // Get appropriate prompt based on media type
+    const prompt = isVideo ? getVideoAnalysisPrompt(outputLanguage, language) : getImageAnalysisPrompt(outputLanguage);
 
     const mediaPart = {
       inlineData: {
