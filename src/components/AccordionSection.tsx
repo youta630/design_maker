@@ -130,7 +130,7 @@ export default function AccordionSection({
     let tableRows: string[] = [];
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+      const line = lines[i]?.trim() || '';
       
       // Check if line contains table structure (starts and ends with |)
       if (line.includes('|') && (line.startsWith('|') || line.endsWith('|'))) {

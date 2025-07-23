@@ -30,10 +30,26 @@ if (ffmpegStatic) {
   console.error('ffmpeg-static not found');
 }
 
-// Set FFprobe path
+// Set FFprobe path with same path resolution logic
 if (ffprobeStatic && ffprobeStatic.path) {
-  console.log('Setting FFprobe path:', ffprobeStatic.path);
-  ffmpeg.setFfprobePath(ffprobeStatic.path);
+  let ffprobePath = ffprobeStatic.path;
+  
+  // Handle various path formats that ffprobe-static might return
+  if (ffprobePath.includes('/ROOT/')) {
+    // Replace /ROOT/ with actual project root
+    ffprobePath = ffprobePath.replace('/ROOT/', process.cwd() + '/');
+  }
+  
+  // Ensure we have an absolute path
+  const absoluteFfprobePath = path.isAbsolute(ffprobePath) ? ffprobePath : path.resolve(ffprobePath);
+  
+  console.log('Setting FFprobe path:', { 
+    original: ffprobeStatic.path, 
+    processed: ffprobePath,
+    resolved: absoluteFfprobePath 
+  });
+  
+  ffmpeg.setFfprobePath(absoluteFfprobePath);
 } else {
   console.error('ffprobe-static not found');
 }
