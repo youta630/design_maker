@@ -32,9 +32,11 @@ export function generateId(text: string): string {
  */
 export function extractHeadings(markdown: string): Array<{ level: number; title: string; id: string }> {
   const headingRegex = /^(#{1,6})\s+(.+)$/gm;
+  const numberedHeadingRegex = /^(\d+)\.\s+\*\*([^*]+)\*\*/gm;
   const headings: Array<{ level: number; title: string; id: string }> = [];
   let match;
 
+  // Extract standard markdown headings
   while ((match = headingRegex.exec(markdown)) !== null) {
     if (match[1] && match[2]) {
       const level = match[1].length;
@@ -45,7 +47,25 @@ export function extractHeadings(markdown: string): Array<{ level: number; title:
     }
   }
 
-  return headings;
+  // Extract numbered list headings (e.g., "1. **Initial View (0:00-0:00)**:")
+  while ((match = numberedHeadingRegex.exec(markdown)) !== null) {
+    if (match[1] && match[2]) {
+      const level = 2; // Treat numbered headings as level 2
+      const title = match[2].trim();
+      const id = generateId(title);
+      
+      headings.push({ level, title, id });
+    }
+  }
+
+  // Sort headings by their position in the document
+  const sortedHeadings = headings.sort((a, b) => {
+    const aIndex = markdown.indexOf(a.title);
+    const bIndex = markdown.indexOf(b.title);
+    return aIndex - bIndex;
+  });
+
+  return sortedHeadings;
 }
 
 /**
@@ -108,6 +128,7 @@ export function splitIntoSections(markdown: string): MarkdownSection[] {
     if (!line) continue;
     
     const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    const numberedHeadingMatch = line.match(/^(\d+)\.\s+\*\*([^*]+)\*\*/);
 
     if (headingMatch && headingMatch[1] && headingMatch[2]) {
       const level = headingMatch[1].length;
@@ -164,6 +185,34 @@ export function splitIntoSections(markdown: string): MarkdownSection[] {
             currentContent = [line];
           }
         }
+      }
+    } else if (numberedHeadingMatch && numberedHeadingMatch[1] && numberedHeadingMatch[2]) {
+      // Handle numbered headings (e.g., "1. **Initial View (0:00-0:00)**:")
+      // Save previous section if exists
+      if (currentSection) {
+        currentSection.content = currentContent.join('\n').trim();
+        currentSection.originalMarkdown = currentContent.join('\n');
+        sections.push(currentSection);
+      }
+
+      // Start new section
+      const title = numberedHeadingMatch[2].trim();
+      const id = generateId(title);
+
+      currentSection = {
+        id,
+        title,
+        level: 2, // Treat numbered headings as level 2
+        content: '',
+        originalMarkdown: ''
+      };
+      
+      // Include pre-header content in the first section
+      if (sections.length === 0 && preHeaderContent.length > 0) {
+        currentContent = [...preHeaderContent, line];
+        preHeaderContent = []; // Clear after using
+      } else {
+        currentContent = [line];
       }
     } else {
       // Add to current section content or store as pre-header content

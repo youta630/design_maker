@@ -121,9 +121,27 @@ export default function AccordionSection({
     .join('\n')
     .trim();
 
+  // Simple markdown to HTML converter for text outside tables
+  const markdownToHtml = (text: string): string => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-gray-800">$1</em>')
+      .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+  };
+
   // Custom table processing function
   const processContent = (content: string) => {
-    // Simple table detection - if content has pipe characters, treat as table
+    // First, check if content contains any tables
+    const hasTable = content.split('\n').some(line => 
+      line.includes('|') && (line.startsWith('|') || line.endsWith('|'))
+    );
+    
+    // If no tables, return original content for ReactMarkdown
+    if (!hasTable) {
+      return content;
+    }
+    
+    // Process content with tables
     const lines = content.split('\n');
     let processedContent = '';
     let inTable = false;
@@ -147,7 +165,12 @@ export default function AccordionSection({
           tableRows = [];
           inTable = false;
         }
-        processedContent += line + '\n';
+        // Convert markdown text to HTML for consistent styling
+        if (line.trim()) {
+          processedContent += `<p class="mb-3 text-gray-800 leading-relaxed">${markdownToHtml(line)}</p>\n`;
+        } else {
+          processedContent += '\n';
+        }
       }
     }
 
@@ -170,14 +193,14 @@ export default function AccordionSection({
       
       if (cells.length === 0) return;
       
-      // Skip separator rows (contains only dashes and spaces)
-      if (cells.every(cell => /^[-\s]*$/.test(cell))) return;
+      // Skip separator rows (contains only dashes, colons, and spaces)
+      if (cells.every(cell => /^[-:\s]*$/.test(cell))) return;
       
       const isHeader = index === 0;
       const tag = isHeader ? 'th' : 'td';
       const className = isHeader 
         ? 'px-4 py-3 text-left text-sm font-semibold text-gray-900 bg-gray-100 border-b border-r border-gray-300 last:border-r-0'
-        : 'px-4 py-3 text-sm text-gray-700 border-b border-r border-gray-200 last:border-r-0 align-top';
+        : 'px-4 py-3 text-sm text-gray-900 border-b border-r border-gray-200 last:border-r-0 align-top';
       
       tableHtml += '  <tr class="hover:bg-gray-50 transition-colors">\n';
       cells.forEach(cell => {
@@ -304,12 +327,12 @@ export default function AccordionSection({
                       </h4>
                     ),
                     ul: ({ children }) => (
-                      <ul className="list-disc list-inside space-y-1 mb-4 text-gray-700 pl-4">
+                      <ul className="list-disc list-inside space-y-1 mb-4 text-gray-800 pl-4">
                         {children}
                       </ul>
                     ),
                     ol: ({ children }) => (
-                      <ol className="list-decimal list-inside space-y-1 mb-4 text-gray-700 pl-4">
+                      <ol className="list-decimal list-inside space-y-1 mb-4 text-gray-800 pl-4">
                         {children}
                       </ol>
                     ),
@@ -337,10 +360,10 @@ export default function AccordionSection({
                       <strong className="font-semibold text-gray-900">{children}</strong>
                     ),
                     em: ({ children }) => (
-                      <em className="italic text-gray-700">{children}</em>
+                      <em className="italic text-gray-800">{children}</em>
                     ),
                     p: ({ children }) => (
-                      <p className="mb-3 text-gray-700 leading-relaxed">{children}</p>
+                      <p className="mb-3 text-gray-800 leading-relaxed">{children}</p>
                     ),
                   }}
                 >
@@ -349,7 +372,7 @@ export default function AccordionSection({
               )}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-700">
               <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>

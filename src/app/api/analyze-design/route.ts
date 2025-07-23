@@ -131,25 +131,27 @@ export async function POST(request: NextRequest) {
     const isVideo = file.type.startsWith('video/');
     
     // Language names for output instruction
-    const languageNames = {
-      ja: 'Japanese',
-      en: 'English', 
-      ko: 'Korean',
-      zh: 'Chinese'
-    };
     
-    const selectedLanguage = languageNames[language as keyof typeof languageNames] || 'Japanese';
+    // Get language name in the target language for stronger instruction
+    const outputLanguage = language === 'ja' ? '日本語' : 
+                          language === 'en' ? 'English' : 
+                          language === 'ko' ? '한국어' : 
+                          language === 'zh' ? '中文' : '日本語';
     
-    const prompt = `Analyze the following UI design ${isVideo ? 'video' : 'image'} in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design.
+    const prompt = `${isVideo ? 
+      (language === 'ja' ? 'この動画で見られる画面を再現するために必要な実装詳細を分析し、開発者が忠実に再現できる包括的な仕様書をMarkdown形式で作成してください。' : 
+       'Analyze the following UI design video in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design shown in the video.') : 
+      'Analyze the following UI design image in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design.'}
 
 # Analysis Areas
 1. **Overall Structure**: Basic layout composition (header, main content, sidebar, footer, etc.)
 2. **UI Components**: All components visible in the ${isVideo ? 'video frames' : 'image'} (buttons, forms, cards, navigation, etc.)
-3. **Visual Properties**: Colors, fonts, sizes, spacing, border radius, shadows, and other styling details
+3. **Visual Properties**: Colors, fonts, sizes, spacing, border radius, shadows, and other styling details${isVideo ? ' - Provide specific pixel values for margins, padding, and positioning' : ''}
 4. **Layout Information**: Positioning relationships between elements and responsive design considerations
 5. **Interactive Elements**: ${isVideo ? 'User interactions, animations, and transitions shown in the video' : 'Inferred click/hover behaviors and user interactions'}
-6. **Implementation Technology**: Recommended implementation approaches (CSS, JavaScript, libraries, frameworks)
-${isVideo ? '7. **Animation & Interactions**: Describe the animations, transitions, and user flows demonstrated in the video' : ''}
+6. **Implementation Technology**: Recommended implementation approaches (CSS, JavaScript, libraries, frameworks)${isVideo ? ' - Specify exact libraries like Three.js for 3D elements' : ''}
+${isVideo ? '7. **3D Elements & Animations**: Detailed description of 3D objects, their colors, positioning, materials, and animations. Include specific implementation approaches using Three.js or similar libraries' : ''}
+${isVideo ? '8. **Animation & Interactions**: Describe the animations, transitions, and user flows demonstrated in the video with technical implementation details' : ''}
 
 # Output Format Requirements
 - Structured in Markdown format with clear headings
@@ -157,19 +159,24 @@ ${isVideo ? '7. **Animation & Interactions**: Describe the animations, transitio
 - Include implementation priority levels (High/Medium/Low)
 - Provide implementation guidance without writing actual code
 - Focus on describing HOW to implement rather than providing code samples
-${isVideo ? '- For videos: Describe the temporal sequence of interactions and animations' : ''}
+${isVideo ? '- For videos: Focus on technical implementation details rather than describing user actions' : ''}
+${isVideo ? '- Provide specific measurements (px, rem, %) wherever visible' : ''}
+${isVideo ? '- Describe 3D elements in detail: colors, shapes, materials, lighting, positioning' : ''}
 
 # Instructions
 - Base analysis strictly on what is visible in the ${isVideo ? 'video' : 'image'}
 - Minimize speculation and assumptions
 - Provide specific measurements and values when identifiable
 - Consider modern web development best practices
-- Exclude any references to Three.js or 3D elements unless explicitly shown
+${isVideo ? '- INCLUDE references to Three.js or other 3D libraries when 3D elements are visible' : '- Exclude any references to Three.js or 3D elements unless explicitly shown'}
 - Use professional, technical language suitable for developers
-- **IMPORTANT: Output the entire specification document in ${selectedLanguage}**
-${isVideo ? '- For videos: Analyze the full sequence of interactions and describe the user flow' : ''}
+- **CRITICAL: You MUST output the entire specification document in ${outputLanguage}. Do not use any other language.**
+${isVideo ? '- For videos: Focus on "HOW TO RECREATE" this interface rather than "WHAT HAPPENS" in the video' : ''}
+${isVideo ? '- Analyze each frame for implementation details: exact colors, positions, sizes, and animations' : ''}
 
-Please analyze the ${isVideo ? 'video' : 'image'} and generate a comprehensive specification document.
+Please analyze the ${isVideo ? 'video' : 'image'} and generate a comprehensive specification document focused on ${isVideo ? 'implementation recreation' : 'design recreation'}.
+
+IMPORTANT: Respond entirely in ${outputLanguage}.
 `;
 
     const mediaPart = {
