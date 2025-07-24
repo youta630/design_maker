@@ -26,12 +26,14 @@ export async function uploadFile(
     const fileName = file.name.replace(/\.[^/.]+$/, ''); // 拡張子を除去
     const filePath = `${userId}/${timestamp}_${fileName}.${fileExtension}`;
 
-    console.log('Uploading file:', {
-      originalName: file.name,
-      filePath,
-      size: file.size,
-      type: file.type
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Uploading file:', {
+        originalName: file.name,
+        filePath,
+        size: file.size,
+        type: file.type
+      });
+    }
 
     // ファイルをSupabase Storageにアップロード
     const { data, error } = await supabase.storage
@@ -51,10 +53,12 @@ export async function uploadFile(
       .from(bucket)
       .getPublicUrl(filePath);
 
-    console.log('File uploaded successfully:', {
-      path: data.path,
-      publicUrl: publicUrlData.publicUrl
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('File uploaded successfully:', {
+        path: data.path,
+        publicUrl: publicUrlData.publicUrl
+      });
+    }
 
     return {
       path: data.path,

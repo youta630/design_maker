@@ -20,11 +20,13 @@ if (ffmpegStatic) {
   // Ensure we have an absolute path
   const absoluteFfmpegPath = path.isAbsolute(ffmpegPath) ? ffmpegPath : path.resolve(ffmpegPath);
   
-  console.log('Setting FFmpeg path:', { 
-    original: ffmpegStatic, 
-    processed: ffmpegPath,
-    resolved: absoluteFfmpegPath 
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Setting FFmpeg path:', { 
+      original: ffmpegStatic, 
+      processed: ffmpegPath,
+      resolved: absoluteFfmpegPath 
+    });
+  }
   
   ffmpeg.setFfmpegPath(absoluteFfmpegPath);
 } else {
@@ -44,11 +46,13 @@ if (ffprobeStatic && ffprobeStatic.path) {
   // Ensure we have an absolute path
   const absoluteFfprobePath = path.isAbsolute(ffprobePath) ? ffprobePath : path.resolve(ffprobePath);
   
-  console.log('Setting FFprobe path:', { 
-    original: ffprobeStatic.path, 
-    processed: ffprobePath,
-    resolved: absoluteFfprobePath 
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Setting FFprobe path:', { 
+      original: ffprobeStatic.path, 
+      processed: ffprobePath,
+      resolved: absoluteFfprobePath 
+    });
+  }
   
   ffmpeg.setFfprobePath(absoluteFfprobePath);
 } else {
@@ -142,19 +146,23 @@ export async function processVideo(buffer: Buffer, _originalMimeType: string): P
   const inputPath = path.join(tempDir, `input_${Date.now()}.tmp`);
   const outputPath = path.join(tempDir, `output_${Date.now()}.mp4`);
   
-  console.log('Video processing paths:', {
-    tempDir,
-    inputPath,
-    outputPath,
-    ffmpegPath: ffmpegStatic
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Video processing paths:', {
+      tempDir,
+      inputPath,
+      outputPath,
+      ffmpegPath: ffmpegStatic
+    });
+  }
   
   try {
     // Write input buffer to temp file
     await fs.writeFile(inputPath, buffer);
     
     return new Promise((resolve, reject) => {
-      console.log('Starting ffmpeg processing...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Starting ffmpeg processing...');
+      }
       const command = ffmpeg(inputPath)
         .outputOptions([
           '-c:v libx264',           // H.264 video codec
@@ -171,11 +179,15 @@ export async function processVideo(buffer: Buffer, _originalMimeType: string): P
       
       // Add progress logging
       command.on('start', (commandLine) => {
-        console.log('FFmpeg command:', commandLine);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('FFmpeg command:', commandLine);
+        }
       });
       
       command.on('progress', (progress) => {
-        console.log('Processing progress:', progress.percent + '% done');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Processing progress:', progress.percent + '% done');
+        }
       });
       
       command
@@ -184,7 +196,9 @@ export async function processVideo(buffer: Buffer, _originalMimeType: string): P
             const processedBuffer = await fs.readFile(outputPath);
             
             // Get video metadata
-            console.log('Running ffprobe on processed video...');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Running ffprobe on processed video...');
+            }
             ffmpeg.ffprobe(outputPath, (err, metadata) => {
               if (err) {
                 console.error('FFprobe error details:', {
@@ -202,11 +216,13 @@ export async function processVideo(buffer: Buffer, _originalMimeType: string): P
                 return;
               }
               
-              console.log('FFprobe successful, metadata retrieved:', {
-                format: metadata.format.format_name,
-                duration: metadata.format.duration,
-                streams: metadata.streams.length
-              });
+              if (process.env.NODE_ENV === 'development') {
+                console.log('FFprobe successful, metadata retrieved:', {
+                  format: metadata.format.format_name,
+                  duration: metadata.format.duration,
+                  streams: metadata.streams.length
+                });
+              }
               
               const videoStream = metadata.streams.find(s => s.codec_type === 'video');
               const duration = metadata.format.duration;
@@ -253,7 +269,9 @@ export async function processMedia(buffer: Buffer, mimeType: string): Promise<Pr
   if (mimeType.startsWith('image/')) {
     return processImage(buffer, mimeType);
   } else if (mimeType.startsWith('video/')) {
-    console.log('Attempting video processing...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Attempting video processing...');
+    }
     try {
       return await processVideo(buffer, mimeType);
     } catch (error) {

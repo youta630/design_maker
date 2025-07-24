@@ -5,10 +5,6 @@ import { uploadFile, generateAndUploadThumbnail } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
 // Validate API key on startup
-console.log('Environment check:', {
-  hasGeminiKey: !!process.env.GEMINI_API_KEY,
-  nodeEnv: process.env.NODE_ENV
-});
 
 if (!process.env.GEMINI_API_KEY) {
   console.error('GEMINI_API_KEY environment variable is not set');
@@ -126,11 +122,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 一時的に認証チェックを無効化（テスト用）
-  const user = { id: '00000000-0000-0000-0000-000000000000' }; // テスト用のダミーユーザー
-  
-  /* 
-  // Check user authentication
+  // セキュリティ強化: 認証チェックを有効化
   const authHeader = request.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return NextResponse.json(
@@ -148,59 +140,45 @@ export async function POST(request: NextRequest) {
       { status: 401 }
     );
   }
-  */
 
-  // 一時的に使用制限チェックを無効化（テスト用）
-  const currentUsage = 0; // テスト用デフォルト値
-  const monthlyLimit = 7; // テスト用デフォルト値
+  // セキュリティ強化: 使用制限チェックを有効化
+  let currentUsage = 0;
+  let monthlyLimit = 7;
+  
+  try {
+    const usageResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/usage`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
 
-  /*
-  // Check user usage limits
-  const { data: userUsage, error: usageError } = await supabase
-    .from('user_usage')
-    .select('*')
-    .eq('user_id', user.id)
-    .single();
+    if (!usageResponse.ok) {
+      const usageError = await usageResponse.json();
+      return NextResponse.json(
+        { error: usageError.error || 'Failed to check usage limits' }, 
+        { status: usageResponse.status }
+      );
+    }
 
-  if (usageError && usageError.code !== 'PGRST116') { // PGRST116 is "not found" error
-    console.error('Usage check error:', usageError);
+    const usageData = await usageResponse.json();
+    currentUsage = usageData.usageCount;
+    monthlyLimit = usageData.monthlyLimit;
+
+    // 使用制限チェック
+    if (currentUsage >= monthlyLimit) {
+      return NextResponse.json(
+        { error: `You have reached your monthly limit of ${monthlyLimit} analyses. Please upgrade your plan.` }, 
+        { status: 429 }
+      );
+    }
+  } catch (usageCheckError) {
+    console.error('Usage check failed:', usageCheckError);
     return NextResponse.json(
-      { error: 'Failed to check usage limits' }, 
+      { error: 'Failed to verify usage limits' }, 
       { status: 500 }
     );
   }
-
-  // Create user usage record if it doesn't exist
-  if (!userUsage) {
-    const { error: createError } = await supabase
-      .from('user_usage')
-      .insert({
-        user_id: user.id,
-        usage_count: 0,
-        monthly_limit: 7,
-        subscription_status: 'free'
-      });
-
-    if (createError) {
-      console.error('Failed to create user usage record:', createError);
-      return NextResponse.json(
-        { error: 'Failed to initialize user account' }, 
-        { status: 500 }
-      );
-    }
-  }
-
-  // Check if user has exceeded their limit
-  const currentUsage = userUsage?.usage_count || 0;
-  const monthlyLimit = userUsage?.monthly_limit || 7;
-  
-  if (currentUsage >= monthlyLimit) {
-    return NextResponse.json(
-      { error: `You have reached your monthly limit of ${monthlyLimit} analyses. Please upgrade your plan.` }, 
-      { status: 429 }
-    );
-  }
-  */
   
   // Rate limiting check
   const ip = request.headers.get('x-forwarded-for') || 
@@ -214,26 +192,32 @@ export async function POST(request: NextRequest) {
     );
   }
   
-  // Log API usage for monitoring
-  console.log('API Request:', {
-    timestamp: new Date().toISOString(),
-    userAgent: request.headers.get('user-agent'),
-    ip: ip
-  });
+  // Log API usage for monitoring  
+  if (process.env.NODE_ENV === 'development') {
+    console.log('API Request:', {
+      timestamp: new Date().toISOString(),
+      userAgent: request.headers.get('user-agent'),
+      ip: ip
+    });
+  }
 
   try {
-    console.log('Processing request...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Processing request...');
+    }
     const formData = await request.formData();
     const mediaEntry = formData.get('media') || formData.get('image');
     const language = formData.get('language') as string || 'ja';
     file = mediaEntry as File;
     
-    console.log('FormData received:', {
-      mediaEntryExists: !!mediaEntry,
-      language,
-      fileType: file?.type,
-      fileSize: file?.size
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('FormData received:', {
+        mediaEntryExists: !!mediaEntry,
+        language,
+        fileType: file?.type,
+        fileSize: file?.size
+      });
+    }
     
     if (!file) {
       return NextResponse.json({ error: 'No media file provided' }, { status: 400 });
@@ -249,16 +233,20 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const inputBuffer = Buffer.from(bytes);
     
-    console.log('Processing media:', {
-      originalSize: file.size,
-      mimeType: file.type,
-      fileName: file.name
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Processing media:', {
+        originalSize: file.size,
+        mimeType: file.type,
+        fileName: file.name
+      });
+    }
     
     let processedMedia;
     try {
       processedMedia = await processMedia(inputBuffer, file.type);
-      console.log('Media processing successful');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Media processing successful');
+      }
     } catch (mediaError) {
       console.error('Media processing failed:', mediaError);
       return NextResponse.json(
@@ -268,13 +256,15 @@ export async function POST(request: NextRequest) {
     }
     const base64 = processedMedia.buffer.toString('base64');
     
-    console.log('Media processed:', {
-      originalSize: file.size,
-      processedSize: processedMedia.buffer.length,
-      finalMimeType: processedMedia.mimeType,
-      dimensions: processedMedia.width && processedMedia.height ? 
-        `${processedMedia.width}x${processedMedia.height}` : 'N/A'
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Media processed:', {
+        originalSize: file.size,
+        processedSize: processedMedia.buffer.length,
+        finalMimeType: processedMedia.mimeType,
+        dimensions: processedMedia.width && processedMedia.height ? 
+          `${processedMedia.width}x${processedMedia.height}` : 'N/A'
+      });
+    }
 
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash',
@@ -329,7 +319,7 @@ export async function POST(request: NextRequest) {
     const text = response.text();
 
     // Debug: Log actual API response for video analysis
-    if (isVideo) {
+    if (isVideo && process.env.NODE_ENV === 'development') {
       console.log('=== VIDEO ANALYSIS DEBUG ===');
       console.log('Response length:', text.length);
       console.log('First 500 chars:', text.substring(0, 500));
@@ -398,26 +388,28 @@ export async function POST(request: NextRequest) {
       console.error('Database operation failed:', dbError);
       // Continue processing even if database save fails
     }
+    */
 
-    // Increment user usage count
+    // セキュリティ強化: 使用量更新を secure API 経由で実行
     try {
-      const { error: usageUpdateError } = await supabase
-        .from('user_usage')
-        .update({ 
-          usage_count: currentUsage + 1,
-          last_used_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id);
+      const usageUpdateResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/usage`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-      if (usageUpdateError) {
-        console.error('Failed to update usage count:', usageUpdateError);
-      } else {
+      if (usageUpdateResponse.ok) {
+        const updatedUsage = await usageUpdateResponse.json();
+        currentUsage = updatedUsage.usageCount;
+        monthlyLimit = updatedUsage.monthlyLimit;
         console.log('Usage count updated successfully');
+      } else {
+        console.error('Failed to update usage count via API');
       }
     } catch (usageError) {
       console.error('Usage update failed:', usageError);
     }
-    */
 
     // Log successful API usage
     const processingTime = Date.now() - startTime;

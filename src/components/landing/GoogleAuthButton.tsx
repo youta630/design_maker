@@ -16,7 +16,9 @@ export default function GoogleAuthButton({
 }: GoogleAuthButtonProps) {
 
   const handleGoogleSignIn = async () => {
-    console.log('🔥 Google auth button clicked!');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔥 Google auth button clicked!');
+    }
     
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -30,7 +32,9 @@ export default function GoogleAuthButton({
         console.error('❌ Google OAuth error:', error.message);
         alert('認証エラー: ' + error.message);
       } else {
-        console.log('✅ Google OAuth redirect started');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Google OAuth redirect started');
+        }
       }
     } catch (err) {
       console.error('❌ Unexpected error:', err);

@@ -25,45 +25,37 @@ export default function AppPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true); // 一時的に認証チェックを無効化
 
   useEffect(() => {
-    // 一時的に認証チェックを無効化
-    // checkAuth();
-    loadUsageData('00000000-0000-0000-0000-000000000000');
+    // セキュアなAPI経由でデータ読み込み
+    loadUsageData();
   }, []);
 
-  const checkAuth = async () => {
+
+  const loadUsageData = async () => {
     try {
+      // セキュアなAPI経由でデータ取得
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No session found, but allowing access for testing');
-        setIsAuthenticated(true);
+      if (!session?.access_token) {
+        console.error('No authentication token');
         return;
       }
+
+      const response = await fetch('/api/usage', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to load usage data:', errorData.error);
+        return;
+      }
+
+      const data = await response.json();
+      setUsageCount(data.usageCount);
+      setMonthlyLimit(data.monthlyLimit);
       
-      setIsAuthenticated(true);
-      await loadUsageData(session.user.id);
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setIsAuthenticated(true); // テスト用に認証を通す
-    }
-  };
-
-  const loadUsageData = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('user_usage')
-        .select('usage_count, monthly_limit')
-        .eq('user_id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Failed to load usage data:', error);
-        return;
-      }
-
-      if (data) {
-        setUsageCount(data.usage_count);
-        setMonthlyLimit(data.monthly_limit);
-      }
     } catch (error) {
       console.error('Error loading usage data:', error);
     }
@@ -75,13 +67,21 @@ export default function AppPage() {
     setResult(null);
 
     try {
-      // 一時的に認証チェックを無効化（テスト用）
+      // セキュリティ強化: 認証ヘッダーを追加
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+
       const formData = new FormData();
       formData.append('media', file);
       formData.append('language', language);
 
       const response = await fetch('/api/analyze-design', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
         body: formData,
       });
 
@@ -140,7 +140,7 @@ export default function AppPage() {
             {/* Subscribe Button */}
             <Link 
               href="/app/subscribe" 
-              className="group relative px-4 py-2 bg-gradient-to-r from-purple-500 via-pink-500 via-red-500 via-orange-500 via-yellow-500 via-green-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300 animate-pulse"
+              className="group relative px-4 py-2 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300 animate-pulse"
               title="Upgrade to Premium"
             >
               <div className="flex items-center space-x-2">
@@ -153,7 +153,7 @@ export default function AppPage() {
                 </span>
               </div>
               {/* Animated border */}
-              <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500 via-pink-500 via-red-500 via-orange-500 via-yellow-500 via-green-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 group-hover:blur-none transition-all duration-300 -z-10"></div>
+              <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 group-hover:blur-none transition-all duration-300 -z-10"></div>
             </Link>
             
             {/* History Button */}

@@ -10,9 +10,13 @@ export function useAuth() {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        console.log('Getting initial session...');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Getting initial session...');
+        }
         const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('Session result:', { session: !!session, error, sessionData: session });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Session result:', { session: !!session, error, sessionData: session });
+        }
         if (error) {
           console.error('Session error details:', error);
         }

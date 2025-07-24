@@ -22,19 +22,23 @@ export default function SpecificationDisplay({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Parse markdown document
-  console.log('=== SPECIFICATION DEBUG ===');
-  console.log('Specification type:', typeof specification);
-  console.log('Specification length:', specification?.length || 'undefined');
-  console.log('First 500 chars:', specification?.substring(0, 500) || 'undefined');
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=== SPECIFICATION DEBUG ===');
+    console.log('Specification type:', typeof specification);
+    console.log('Specification length:', specification?.length || 'undefined');
+    console.log('First 500 chars:', specification?.substring(0, 500) || 'undefined');
+  }
   
   const { toc, sections } = parseMarkdownDocument(specification);
   
-  console.log('=== PARSE RESULT DEBUG ===');
-  console.log('TOC length:', toc?.length || 'undefined');
-  console.log('Sections length:', sections?.length || 'undefined');
-  console.log('TOC:', toc);
-  console.log('Sections:', sections);
-  console.log('==============================');
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=== PARSE RESULT DEBUG ===');
+    console.log('TOC length:', toc?.length || 'undefined');
+    console.log('Sections length:', sections?.length || 'undefined');
+    console.log('TOC:', toc);
+    console.log('Sections:', sections);
+    console.log('==============================');
+  }
 
   // Initialize with first section open
   useEffect(() => {
