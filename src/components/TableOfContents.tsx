@@ -121,6 +121,10 @@ export default function TableOfContents({
     <nav 
       className={`bg-white border-r border-gray-200 ${className}`}
       aria-label="Table of contents"
+      style={{
+        // Hide any potential injected text elements that might show section counts
+        position: 'relative'
+      }}
     >
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">

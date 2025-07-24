@@ -25,7 +25,6 @@ export default function SpecificationDisplay({
   console.log('=== SPECIFICATION DEBUG ===');
   console.log('Specification type:', typeof specification);
   console.log('Specification length:', specification?.length || 'undefined');
-  console.log('Specification content:', specification);
   console.log('First 500 chars:', specification?.substring(0, 500) || 'undefined');
   
   const { toc, sections } = parseMarkdownDocument(specification);
@@ -104,6 +103,37 @@ export default function SpecificationDisplay({
   const handleCollapseAll = () => {
     setOpenSections(new Set());
   };
+
+  // 一時的にraw textを表示する（デバッグ用）
+  if (sections.length === 0 && specification && specification.length > 0) {
+    return (
+      <div className="w-full max-w-4xl mx-auto">
+        <div className="bg-white border border-gray-300 rounded-lg p-8">
+          <div className="mb-4 flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900">Raw Specification (Debug Mode)</h3>
+            <button
+              onClick={handleCopy}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                copied
+                  ? 'bg-green-100 text-green-800 border-green-200'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              } border`}
+            >
+              {copied ? '✓ Copied!' : 'Copy All'}
+            </button>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+            <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+              {specification}
+            </pre>
+          </div>
+          <div className="mt-2 text-sm text-gray-500">
+            Length: {specification.length} characters | Sections parsed: {sections.length}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (sections.length === 0) {
     return (

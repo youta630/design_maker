@@ -3,6 +3,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
 import ffprobeStatic from 'ffprobe-static';
 import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
 import path from 'path';
 import os from 'os';
 
@@ -190,7 +191,7 @@ export async function processVideo(buffer: Buffer, _originalMimeType: string): P
                   message: err.message,
                   code: err.code,
                   outputPath: outputPath,
-                  outputPathExists: require('fs').existsSync(outputPath)
+                  outputPathExists: existsSync(outputPath)
                 });
                 
                 // Cleanup temp files

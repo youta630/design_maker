@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { Suspense, lazy } from 'react';
 import * as THREE from 'three';
-import SimpleAuthButton from '@/components/SimpleAuthButton';
+import GoogleAuthButton from '@/components/landing/GoogleAuthButton';
 
 // Three.js components
 const Canvas = lazy(() => import('@react-three/fiber').then(module => ({ default: module.Canvas })));
@@ -49,7 +49,7 @@ export default function LandingPage() {
     offset: ["start start", "end end"]
   });
 
-  const totalSections = 6;
+  const totalSections = 5;
   
   const sectionProgress = useTransform(
     scrollYProgress,
@@ -88,13 +88,6 @@ console.log(spec.colors);`
     },
     {
       id: 1,
-      title: "PRICING",
-      subtitle: "SIMPLE & FAIR",
-      description: "Choose the plan that fits your workflow",
-      code: ""
-    },
-    {
-      id: 2,
       title: "ANALYZE",
       subtitle: "SMART DETECTION",
       description: "AI identifies components, layouts, and patterns",
@@ -109,7 +102,7 @@ components.forEach(comp => {
 });`
     },
     {
-      id: 3,
+      id: 2,
       title: "GENERATE",
       subtitle: "TECHNICAL SPECS",
       description: "Detailed documentation for implementation",
@@ -125,7 +118,7 @@ const documentation = await generate({
 export default documentation;`
     },
     {
-      id: 4,
+      id: 3,
       title: "IMPLEMENT",
       subtitle: "READY TO CODE",
       description: "Copy-paste ready development guidelines",
@@ -140,7 +133,7 @@ export const Button = styled.button\`
 \`;`
     },
     {
-      id: 5,
+      id: 4,
       title: "READY",
       subtitle: "START BUILDING",
       description: "Transform your design workflow today",
@@ -153,30 +146,29 @@ export const Button = styled.button\`
   return (
     <main ref={containerRef} className="relative">
       {/* START NOW button - shows only on READY section */}
-      {currentSection === 5 && (
+      {currentSection === 4 && (
         <div style={{ position: 'fixed', bottom: '120px', left: '50%', transform: 'translateX(-50%)', zIndex: 99999 }}>
-          <SimpleAuthButton 
+          <GoogleAuthButton 
             className="px-16 py-6 bg-white text-black text-xl font-bold hover:bg-gray-200 shadow-2xl"
             redirectTo="/app"
           >
             START NOW
-          </SimpleAuthButton>
+          </GoogleAuthButton>
         </div>
       )}
       
       {/* Login button in top right */}
       <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 99999 }}>
-        <SimpleAuthButton 
-          variant="secondary" 
+        <GoogleAuthButton 
           redirectTo="/app" 
           className={`px-8 py-3 text-sm ${
-            currentSection === 5 
+            currentSection === 4 
               ? 'border-2 border-white text-white hover:bg-white hover:text-black' 
               : ''
           }`}
         >
           SIGN IN
-        </SimpleAuthButton>
+        </GoogleAuthButton>
       </div>
       
       {/* Fixed background */}
@@ -185,7 +177,7 @@ export const Button = styled.button\`
         style={{
           background: currentSection === 0 
             ? 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%)'
-            : currentSection === 5
+            : currentSection === 4
             ? 'linear-gradient(135deg, #000000 0%, #111111 50%, #000000 100%)'
             : 'linear-gradient(135deg, #ffffff 0%, #000000 100%)'
         }}
@@ -293,7 +285,7 @@ export const Button = styled.button\`
           )}
 
           {/* Main storytelling sections */}
-          {currentSection > 0 && currentSection < 5 && (
+          {currentSection > 0 && currentSection < 4 && (
             <div className="grid grid-cols-2 gap-20 items-center h-full">
               
               {/* Left: Title Area */}
@@ -347,68 +339,10 @@ export const Button = styled.button\`
                 </AnimatePresence>
               </div>
 
-              {/* Right: Code Editor Area or Pricing */}
+              {/* Right: Code Editor Area */}
               <div className="relative">
                 <AnimatePresence mode="wait">
-                  {currentSection === 1 ? (
-                    /* Pricing Cards */
-                    <motion.div
-                      key="pricing"
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 50 }}
-                      transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                      className="grid grid-cols-1 gap-4 max-w-sm mx-auto"
-                    >
-                      {[
-                        { period: "週", price: "500", duration: "円/週" },
-                        { period: "月", price: "1,000", duration: "円/月", recommended: true },
-                        { period: "年", price: "10,000", duration: "円/年", savings: "約33%お得" }
-                      ].map((plan, index) => (
-                        <motion.div
-                          key={plan.period}
-                          className={`relative p-4 border-2 border-black bg-white ${plan.recommended ? 'shadow-xl' : 'shadow-lg'}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 + index * 0.1 }}
-                          whileHover={{ scale: 1.02 }}
-                          style={{ zIndex: 10 }}
-                        >
-                          {plan.recommended && (
-                            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-black text-white px-4 py-1 text-xs font-bold tracking-wider">
-                              おすすめ
-                            </div>
-                          )}
-                          <div className="text-center">
-                            <div className="text-sm font-bold text-gray-700 mb-2">
-                              {plan.period}間プラン
-                            </div>
-                            <div className="mb-3">
-                              <span className="text-3xl font-black text-black">
-                                {plan.price}
-                              </span>
-                              <span className="text-sm text-gray-600 ml-1">
-                                {plan.duration}
-                              </span>
-                            </div>
-                            {plan.savings && (
-                              <div className="text-xs font-bold text-green-600 mb-3 bg-green-50 py-1 px-2 rounded border border-green-200">
-                                {plan.savings}
-                              </div>
-                            )}
-                            <SimpleAuthButton 
-                              className="px-6 py-2 bg-black text-white text-sm font-bold hover:bg-gray-800 w-full"
-                              redirectTo="/app"
-                            >
-                              このプランを選択
-                            </SimpleAuthButton>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </motion.div>
-                  ) : (
-                    /* Code Editor */
-                    <motion.div
+                  <motion.div
                       key={`code-${currentSection}`}
                       initial={{ opacity: 0, x: 50 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -446,14 +380,13 @@ export const Button = styled.button\`
                         </div>
                       </div>
                     </motion.div>
-                  )}
                 </AnimatePresence>
               </div>
             </div>
           )}
 
           {/* Final READY section */}
-          {currentSection === 5 && (
+          {currentSection === 4 && (
             <AnimatePresence>
               <motion.div 
                 className="text-center w-full"
@@ -517,7 +450,7 @@ export const Button = styled.button\`
       </div>
 
       {/* Scroll area */}
-      <div className="h-[600vh] relative z-30">
+      <div className="h-[500vh] relative z-30">
         {/* Scroll indicator */}
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40">
           <motion.div 

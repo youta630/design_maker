@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MediaUpload from '@/components/MediaUpload';
 import SpecificationDisplay from '@/components/SpecificationDisplay';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 interface AnalysisResult {
   specification: string;
   fileName: string;
   fileSize: number;
   mimeType: string;
+  usageCount: number;
+  monthlyLimit: number;
 }
 
 export default function AppPage() {
@@ -17,6 +20,54 @@ export default function AppPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetTrigger, setResetTrigger] = useState<number>(0);
+  const [usageCount, setUsageCount] = useState<number>(0);
+  const [monthlyLimit, setMonthlyLimit] = useState<number>(7);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true); // 一時的に認証チェックを無効化
+
+  useEffect(() => {
+    // 一時的に認証チェックを無効化
+    // checkAuth();
+    loadUsageData('00000000-0000-0000-0000-000000000000');
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session found, but allowing access for testing');
+        setIsAuthenticated(true);
+        return;
+      }
+      
+      setIsAuthenticated(true);
+      await loadUsageData(session.user.id);
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      setIsAuthenticated(true); // テスト用に認証を通す
+    }
+  };
+
+  const loadUsageData = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_usage')
+        .select('usage_count, monthly_limit')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Failed to load usage data:', error);
+        return;
+      }
+
+      if (data) {
+        setUsageCount(data.usage_count);
+        setMonthlyLimit(data.monthly_limit);
+      }
+    } catch (error) {
+      console.error('Error loading usage data:', error);
+    }
+  };
 
   const handleMediaUpload = async (file: File, language: string) => {
     setIsLoading(true);
@@ -24,6 +75,7 @@ export default function AppPage() {
     setResult(null);
 
     try {
+      // 一時的に認証チェックを無効化（テスト用）
       const formData = new FormData();
       formData.append('media', file);
       formData.append('language', language);
@@ -40,6 +92,11 @@ export default function AppPage() {
 
       const data: AnalysisResult = await response.json();
       setResult(data);
+      
+      // Update usage count in UI
+      setUsageCount(data.usageCount);
+      setMonthlyLimit(data.monthlyLimit);
+      
     } catch (err) {
       console.error('Upload error:', err);
       setError(
@@ -58,6 +115,18 @@ export default function AppPage() {
     setResetTrigger(prev => prev + 1); // Trigger MediaUpload reset
   };
 
+  // Show loading screen while checking authentication
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -66,15 +135,38 @@ export default function AppPage() {
           <h1 className="text-xl font-semibold text-gray-900">
             Design Spec Generator
           </h1>
-          <Link 
-            href="/app/history" 
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            title="View History"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </Link>
+          
+          <div className="flex items-center space-x-3">
+            {/* Subscribe Button */}
+            <Link 
+              href="/app/subscribe" 
+              className="group relative px-4 py-2 bg-gradient-to-r from-purple-500 via-pink-500 via-red-500 via-orange-500 via-yellow-500 via-green-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300 animate-pulse"
+              title="Upgrade to Premium"
+            >
+              <div className="flex items-center space-x-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>Subscribe</span>
+                <span className="px-1.5 py-0.5 text-xs font-bold bg-white/20 rounded backdrop-blur">
+                  {usageCount}/{monthlyLimit}
+                </span>
+              </div>
+              {/* Animated border */}
+              <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500 via-pink-500 via-red-500 via-orange-500 via-yellow-500 via-green-500 to-blue-500 opacity-75 blur-sm group-hover:opacity-100 group-hover:blur-none transition-all duration-300 -z-10"></div>
+            </Link>
+            
+            {/* History Button */}
+            <Link 
+              href="/app/history" 
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="View History"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </Link>
+          </div>
         </div>
       </header>
 

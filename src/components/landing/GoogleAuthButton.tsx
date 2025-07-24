@@ -3,22 +3,20 @@
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 
-interface SimpleAuthButtonProps {
+interface GoogleAuthButtonProps {
   className?: string;
-  variant?: 'primary' | 'secondary';
   children?: React.ReactNode;
   redirectTo?: string;
 }
 
-export default function SimpleAuthButton({ 
+export default function GoogleAuthButton({ 
   className = '', 
-  variant = 'secondary', 
   children, 
   redirectTo = '/app' 
-}: SimpleAuthButtonProps) {
+}: GoogleAuthButtonProps) {
 
-  const handleSignIn = async () => {
-    console.log('🔥 Simple auth button clicked!');
+  const handleGoogleSignIn = async () => {
+    console.log('🔥 Google auth button clicked!');
     
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -29,10 +27,10 @@ export default function SimpleAuthButton({
       });
 
       if (error) {
-        console.error('❌ OAuth error:', error.message);
+        console.error('❌ Google OAuth error:', error.message);
         alert('認証エラー: ' + error.message);
       } else {
-        console.log('✅ OAuth redirect started');
+        console.log('✅ Google OAuth redirect started');
       }
     } catch (err) {
       console.error('❌ Unexpected error:', err);
@@ -40,14 +38,10 @@ export default function SimpleAuthButton({
     }
   };
 
-  const baseStyles = variant === 'primary' 
-    ? "bg-black text-white hover:bg-gray-800"
-    : "border-2 border-black text-black hover:bg-black hover:text-white";
-
   return (
     <motion.button 
-      onClick={handleSignIn}
-      className={`px-12 py-4 ${baseStyles} rounded-none text-lg font-bold transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer ${className}`}
+      onClick={handleGoogleSignIn}
+      className={`px-12 py-4 border-2 border-black text-black hover:bg-black hover:text-white rounded-none text-lg font-bold transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer ${className}`}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
     >

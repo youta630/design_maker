@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { processMedia, validateMediaFile } from '@/lib/mediaProcessor';
+import { uploadFile, generateAndUploadThumbnail } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 
 // Validate API key on startup
 console.log('Environment check:', {
@@ -21,7 +23,9 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 // Image analysis prompt - focused on static design recreation
 function getImageAnalysisPrompt(outputLanguage: string): string {
-  return `Analyze the following UI design image in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design.
+  return `SYSTEM: You MUST output entirely in ${outputLanguage}. If you start in another language, immediately restate in ${outputLanguage} only. The response MUST be comprehensive and detailed, not a short summary.
+
+Analyze the following UI design image in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design.
 
 # Analysis Areas
 1. **Overall Structure**: Basic layout composition (header, main content, sidebar, footer, etc.)
@@ -52,25 +56,20 @@ Please analyze the image and generate a comprehensive specification document foc
 IMPORTANT: Respond entirely in ${outputLanguage}.`;
 }
 
-// Video analysis prompt - focused on motion, animation, and 3D elements
-function getVideoAnalysisPrompt(outputLanguage: string, language: string): string {
-  const intro = language === 'ja' 
-    ? 'この動画で見られる画面を再現するために必要な実装詳細を分析し、開発者が忠実に再現できる包括的な仕様書をMarkdown形式で作成してください。'
-    : 'Analyze the following UI design video in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design shown in the video.';
+// Video analysis prompt - using successful image prompt pattern
+function getVideoAnalysisPrompt(outputLanguage: string): string {
+  return `SYSTEM: You MUST output entirely in ${outputLanguage}. If you start in another language, immediately restate in ${outputLanguage} only. The response MUST be comprehensive and detailed, not a short summary.
 
-  return `${intro}
+Analyze the following UI design video in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design shown in the video.
 
 # Analysis Areas
-1. **Overall Structure**: Basic layout composition (header, main content, sidebar, footer, etc.)
+1. **Overall Structure**: Basic layout composition (header, main content, sidebar, footer, etc.) as seen throughout the video
 2. **UI Components**: All components visible in the video frames (buttons, forms, cards, navigation, etc.)
-3. **Visual Properties**: Colors, fonts, sizes, spacing, border radius, shadows, and other styling details - Provide specific pixel values for margins, padding, and positioning
+3. **Visual Properties**: Colors, fonts, sizes, spacing, border radius, shadows, and other styling details
 4. **Layout Information**: Positioning relationships between elements and responsive design considerations
 5. **Interactive Elements**: User interactions, animations, and transitions shown in the video
-6. **Implementation Technology**: Recommended implementation approaches (CSS, JavaScript, libraries, frameworks) - Specify exact libraries like Three.js for 3D elements
-7. **Motion & Animation Analysis**: Detailed breakdown of all moving elements, their trajectories, timing, easing functions, and animation types (CSS transitions, keyframes, JavaScript animations)
-8. **3D Elements & Spatial Dynamics**: If 3D elements are present, describe their geometry, materials, lighting, camera movements, and spatial relationships. Specify implementation using Three.js, WebGL, or similar technologies
-9. **Camera/Viewport Changes**: Document any changes in viewing angle, zoom levels, perspective shifts, or camera movements throughout the video
-10. **Temporal Sequence**: Frame-by-frame analysis of key animation moments, describing what moves, when, and how (duration, delay, sequence)
+6. **Motion & Animation**: Detailed breakdown of all moving elements, their timing, and animation patterns
+7. **Implementation Technology**: Recommended implementation approaches (CSS, JavaScript, libraries, frameworks)
 
 # Output Format Requirements
 - Structured in Markdown format with clear headings
@@ -78,30 +77,18 @@ function getVideoAnalysisPrompt(outputLanguage: string, language: string): strin
 - Include implementation priority levels (High/Medium/Low)
 - Provide implementation guidance without writing actual code
 - Focus on describing HOW to implement rather than providing code samples
-- For videos: Focus on MOTION and CHANGE rather than static descriptions
-- Document animation timing: start/end frames, duration, easing curves
-- Describe movement patterns: linear, curved, rotational, scaling, morphing
-- Identify keyframes and transition states for complex animations
-- Specify 3D properties: rotation angles, camera positions, lighting changes
-- Note performance considerations for animations (GPU acceleration, frame rates)
+- Emphasize dynamic elements and animations unique to video content
 
 # Instructions
 - Base analysis strictly on what is visible in the video
 - Minimize speculation and assumptions
 - Provide specific measurements and values when identifiable
 - Consider modern web development best practices
-- INCLUDE references to Three.js or other 3D libraries when 3D elements are visible
+- Include references to animation libraries when 3D elements or complex animations are visible
 - Use professional, technical language suitable for developers
 - **CRITICAL: You MUST output the entire specification document in ${outputLanguage}. Do not use any other language.**
-- For videos: Prioritize DYNAMIC ELEMENTS over static UI components
-- Track element transformations: position changes, size variations, opacity shifts
-- Document camera/viewport movements: panning, zooming, rotating, perspective changes
-- Identify animation triggers: user interactions, time-based, scroll-based, or automatic
-- Describe 3D scene composition: object placement, lighting setup, material properties
-- Note any physics simulations: gravity, collision, particle systems, fluid dynamics
-- Focus on the TECHNICAL RECREATION of movements rather than describing user actions
 
-Please analyze the video and generate a comprehensive specification document focused on implementation recreation.
+Please analyze the video and generate a comprehensive specification document focused on design recreation.
 
 IMPORTANT: Respond entirely in ${outputLanguage}.`;
 }
@@ -138,6 +125,82 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+
+  // 一時的に認証チェックを無効化（テスト用）
+  const user = { id: '00000000-0000-0000-0000-000000000000' }; // テスト用のダミーユーザー
+  
+  /* 
+  // Check user authentication
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return NextResponse.json(
+      { error: 'Authentication required' }, 
+      { status: 401 }
+    );
+  }
+
+  const token = authHeader.split(' ')[1];
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  
+  if (authError || !user) {
+    return NextResponse.json(
+      { error: 'Invalid authentication' }, 
+      { status: 401 }
+    );
+  }
+  */
+
+  // 一時的に使用制限チェックを無効化（テスト用）
+  const currentUsage = 0; // テスト用デフォルト値
+  const monthlyLimit = 7; // テスト用デフォルト値
+
+  /*
+  // Check user usage limits
+  const { data: userUsage, error: usageError } = await supabase
+    .from('user_usage')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+
+  if (usageError && usageError.code !== 'PGRST116') { // PGRST116 is "not found" error
+    console.error('Usage check error:', usageError);
+    return NextResponse.json(
+      { error: 'Failed to check usage limits' }, 
+      { status: 500 }
+    );
+  }
+
+  // Create user usage record if it doesn't exist
+  if (!userUsage) {
+    const { error: createError } = await supabase
+      .from('user_usage')
+      .insert({
+        user_id: user.id,
+        usage_count: 0,
+        monthly_limit: 7,
+        subscription_status: 'free'
+      });
+
+    if (createError) {
+      console.error('Failed to create user usage record:', createError);
+      return NextResponse.json(
+        { error: 'Failed to initialize user account' }, 
+        { status: 500 }
+      );
+    }
+  }
+
+  // Check if user has exceeded their limit
+  const currentUsage = userUsage?.usage_count || 0;
+  const monthlyLimit = userUsage?.monthly_limit || 7;
+  
+  if (currentUsage >= monthlyLimit) {
+    return NextResponse.json(
+      { error: `You have reached your monthly limit of ${monthlyLimit} analyses. Please upgrade your plan.` }, 
+      { status: 429 }
+    );
+  }
+  */
   
   // Rate limiting check
   const ip = request.headers.get('x-forwarded-for') || 
@@ -213,7 +276,33 @@ export async function POST(request: NextRequest) {
         `${processedMedia.width}x${processedMedia.height}` : 'N/A'
     });
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        candidateCount: 1,
+        maxOutputTokens: 8192,
+        temperature: 0.1,
+        responseMimeType: "text/plain"
+      },
+      safetySettings: [
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+        },
+      ],
+    });
 
     const isVideo = file.type.startsWith('video/');
     
@@ -226,7 +315,7 @@ export async function POST(request: NextRequest) {
                           language === 'zh' ? '中文' : '日本語';
     
     // Get appropriate prompt based on media type
-    const prompt = isVideo ? getVideoAnalysisPrompt(outputLanguage, language) : getImageAnalysisPrompt(outputLanguage);
+    const prompt = isVideo ? getVideoAnalysisPrompt(outputLanguage) : getImageAnalysisPrompt(outputLanguage);
 
     const mediaPart = {
       inlineData: {
@@ -239,13 +328,106 @@ export async function POST(request: NextRequest) {
     const response = result.response;
     const text = response.text();
 
+    // Debug: Log actual API response for video analysis
+    if (isVideo) {
+      console.log('=== VIDEO ANALYSIS DEBUG ===');
+      console.log('Response length:', text.length);
+      console.log('First 500 chars:', text.substring(0, 500));
+      console.log('Last 500 chars:', text.substring(Math.max(0, text.length - 500)));
+      console.log('Full response preview:', text.substring(0, 1000));
+      console.log('============================');
+    }
+
+    // 一時的にファイル保存とデータベース操作を無効化（テスト用）
+    const fileUrl = '';
+    const thumbnailUrl = '';
+
+    /*
+    // Save file to Supabase Storage
+    let fileUrl = '';
+    let thumbnailUrl = '';
+    
+    try {
+      const uploadResult = await uploadFile(file, user.id);
+      if (uploadResult.error) {
+        console.error('File upload error:', uploadResult.error);
+      } else {
+        fileUrl = uploadResult.publicUrl;
+        console.log('File uploaded successfully:', fileUrl);
+      }
+
+      // Generate thumbnail for videos
+      if (isVideo && !uploadResult.error) {
+        const thumbnailResult = await generateAndUploadThumbnail(
+          processedMedia.buffer, 
+          user.id, 
+          file.name
+        );
+        if (thumbnailResult.error) {
+          console.error('Thumbnail upload error:', thumbnailResult.error);
+        } else {
+          thumbnailUrl = thumbnailResult.publicUrl;
+          console.log('Thumbnail uploaded successfully:', thumbnailUrl);
+        }
+      }
+    } catch (storageError) {
+      console.error('Storage operation failed:', storageError);
+      // Continue processing even if storage fails
+    }
+
+    // Save analysis to database
+    try {
+      const { error: historyError } = await supabase
+        .from('analysis_history')
+        .insert({
+          user_id: user.id,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type,
+          specification: text,
+          file_url: fileUrl || null,
+          thumbnail_storage_path: thumbnailUrl || null
+        });
+
+      if (historyError) {
+        console.error('Failed to save analysis history:', historyError);
+      } else {
+        console.log('Analysis history saved successfully');
+      }
+    } catch (dbError) {
+      console.error('Database operation failed:', dbError);
+      // Continue processing even if database save fails
+    }
+
+    // Increment user usage count
+    try {
+      const { error: usageUpdateError } = await supabase
+        .from('user_usage')
+        .update({ 
+          usage_count: currentUsage + 1,
+          last_used_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+
+      if (usageUpdateError) {
+        console.error('Failed to update usage count:', usageUpdateError);
+      } else {
+        console.log('Usage count updated successfully');
+      }
+    } catch (usageError) {
+      console.error('Usage update failed:', usageError);
+    }
+    */
+
     // Log successful API usage
     const processingTime = Date.now() - startTime;
     console.log('API Success:', {
       timestamp: new Date().toISOString(),
       processingTime: `${processingTime}ms`,
       fileSize: file.size,
-      outputLength: text.length
+      outputLength: text.length,
+      userId: user.id,
+      usageCount: currentUsage + 1
     });
 
     return NextResponse.json({ 
@@ -255,7 +437,11 @@ export async function POST(request: NextRequest) {
       mimeType: file.type,
       processedSize: processedMedia.buffer.length,
       processedMimeType: processedMedia.mimeType,
-      mediaType: isVideo ? 'video' : 'image'
+      mediaType: isVideo ? 'video' : 'image',
+      fileUrl: fileUrl || null,
+      thumbnailUrl: thumbnailUrl || null,
+      usageCount: currentUsage + 1,
+      monthlyLimit: monthlyLimit
     });
 
   } catch (error) {

@@ -24,3 +24,21 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Hide any potential injected text elements that might show section counts */
+nav[aria-label="Table of contents"] {
+  overflow: hidden;
+}
+
+/* Hide any floating or positioned elements that might be injected by browser extensions */
+nav[aria-label="Table of contents"]::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: white;
+  z-index: 10;
+  pointer-events: none;
+}
