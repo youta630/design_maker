@@ -20,9 +20,8 @@ interface PricingSectionProps {
 
 export default function PricingSection({ currentSection }: PricingSectionProps) {
   const pricingPlans = [
-    { period: "週", price: "500", duration: "円/週" },
-    { period: "月", price: "1,000", duration: "円/月", recommended: true },
-    { period: "年", price: "10,000", duration: "円/年", savings: "約33%お得" }
+    { period: "月", price: "$7.99", duration: "USD/月", recommended: true },
+    { period: "年", price: "$79.99", duration: "USD/年", savings: "約17%お得" }
   ];
 
   const pricingSectionData = {
@@ -44,7 +43,7 @@ export default function PricingSection({ currentSection }: PricingSectionProps) 
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
       transition={{ type: "spring", stiffness: 100, damping: 20 }}
-      className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto"
+      className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto"
     >
       {pricingPlans.map((plan, index) => (
         <motion.div

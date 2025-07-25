@@ -8,13 +8,13 @@ export default function Home() {
 
   useEffect(() => {
     // Redirect to app for testing
-    router.push('/app');
+    router.push('/landing');
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+    <div className="min-h-screen text-black flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 text-white mx-auto mb-4"></div>
         <p className="text-white text-lg">Redirecting to app...</p>
       </div>
     </div>

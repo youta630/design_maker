@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { processMedia, validateMediaFile } from '@/lib/mediaProcessor';
 import { uploadFile, generateAndUploadThumbnail } from '@/lib/storage';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 
 // Validate API key on startup
 
@@ -54,40 +54,37 @@ IMPORTANT: Respond entirely in ${outputLanguage}.`;
 
 // Video analysis prompt - using successful image prompt pattern
 function getVideoAnalysisPrompt(outputLanguage: string): string {
-  return `SYSTEM: You MUST output entirely in ${outputLanguage}. If you start in another language, immediately restate in ${outputLanguage} only. The response MUST be comprehensive and detailed, not a short summary.
+  return `**ALL OUTPUT MUST BE IN ${outputLanguage}. DO NOT USE ANY OTHER LANGUAGE.**
 
-Analyze the following UI design video in detail and create a comprehensive specification document in Markdown format that developers can use to faithfully recreate the design shown in the video.
-
-# Analysis Areas
-1. **Overall Structure**: Basic layout composition (header, main content, sidebar, footer, etc.) as seen throughout the video
-2. **UI Components**: All components visible in the video frames (buttons, forms, cards, navigation, etc.)
-3. **Visual Properties**: Colors, fonts, sizes, spacing, border radius, shadows, and other styling details
-4. **Layout Information**: Positioning relationships between elements and responsive design considerations
-5. **Interactive Elements**: User interactions, animations, and transitions shown in the video
-6. **Motion & Animation**: Detailed breakdown of all moving elements, their timing, and animation patterns
-7. **Implementation Technology**: Recommended implementation approaches (CSS, JavaScript, libraries, frameworks)
-
-# Output Format Requirements
-- Structured in Markdown format with clear headings
-- Use tables and bullet points for organization
-- Include implementation priority levels (High/Medium/Low)
-- Provide implementation guidance without writing actual code
-- Focus on describing HOW to implement rather than providing code samples
-- Emphasize dynamic elements and animations unique to video content
-
-# Instructions
-- Base analysis strictly on what is visible in the video
-- Minimize speculation and assumptions
-- Provide specific measurements and values when identifiable
-- Consider modern web development best practices
-- Include references to animation libraries when 3D elements or complex animations are visible
-- Use professional, technical language suitable for developers
-- **CRITICAL: You MUST output the entire specification document in ${outputLanguage}. Do not use any other language.**
-
-Please analyze the video and generate a comprehensive specification document focused on design recreation.
-
-IMPORTANT: Respond entirely in ${outputLanguage}.`;
-}
+  SYSTEM: You are an expert UI/UX designer and web developer. Your task is to analyze the provided UI design video in extreme detail and generate a comprehensive, actionable design specification document for developers to faithfully recreate the UI.
+  
+  # Analysis Areas
+  1. **Overall Structure**: Basic layout composition (header, main content, sidebar, footer, etc.) as seen throughout the video.
+  2. **UI Components**: All components visible in the video frames (buttons, forms, cards, navigation, etc.), including their states.
+  3. **Visual Properties**: Precise details on colors (use hex codes where identifiable), fonts (family, weight, size), exact sizes of elements, spacing (padding, margin, gap), border radius, shadows, and other styling details. Quantify as much as possible.
+  4. **Layout Information**: Positioning relationships between elements (flexbox, grid, absolute), alignment, and responsive design considerations (how elements adapt to different viewports, even if only implied).
+  5. **Interactive Elements**: Detailed description of user interactions (hover, click, drag, input focus), including specific state changes (e.g., button text color changes from X to Y on hover).
+  6. **Motion & Animation**: Granular breakdown of all moving elements. Describe animation patterns (fade, slide, scale, rotate, transform), easing functions (linear, ease-in-out), duration, and triggers. For 3D elements, describe their perceived behavior (e.g., floating, rotating based on cursor) and suggest relevant libraries/techniques.
+  7. **Implementation Technology**: Recommended implementation approaches (CSS techniques, JavaScript APIs, specific libraries like Three.js for 3D, GSAP for complex animations, React/Vue/Angular for framework considerations).
+  
+  # Output Format Requirements
+  - Structured in Markdown format with clear, hierarchical headings (e.g., #, ##, ###).
+  - Use tables and detailed bullet points for organization and clarity.
+  - Include implementation priority levels (High/Medium/Low) for each major section or component.
+  - Provide clear, actionable implementation guidance focusing on "HOW to implement" the visual and interactive aspects, without writing actual code snippets.
+  - Emphasize dynamic elements, animations, and the unique interactive behaviors shown in the video.
+  - **Strictly adhere to the specified output language throughout the entire document.**
+  
+  # Instructions
+  - Base analysis strictly on what is visible and discernible in the *entire duration* of the video. Observe subtle details.
+  - Minimize speculation and assumptions. If a detail is unclear, state that it is "unclear" or "appears to be X".
+  - Provide specific measurements, hex codes, font names, animation durations, and easing types when identifiable or inferable from typical web standards.
+  - Consider modern web development best practices and suggest common patterns.
+  - Include specific references to well-known animation or 3D rendering libraries (e.g., Three.js, GSAP, Framer Motion) when complex 3D elements, physics-based motion, or intricate animation sequences are observed.
+  - Use professional, precise, and technical language suitable for experienced web developers.
+  
+  **CRITICAL: The entire response MUST be in ${outputLanguage}. Absolutely no other languages are permitted in the output.**`;
+  }
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
@@ -132,6 +129,7 @@ export async function POST(request: NextRequest) {
   }
 
   const token = authHeader.split(' ')[1];
+  const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   
   if (authError || !user) {
@@ -328,67 +326,80 @@ export async function POST(request: NextRequest) {
       console.log('============================');
     }
 
-    // 一時的にファイル保存とデータベース操作を無効化（テスト用）
-    const fileUrl = '';
-    const thumbnailUrl = '';
-
-    /*
-    // Save file to Supabase Storage
+    // セキュアなファイル保存とデータベース操作
     let fileUrl = '';
     let thumbnailUrl = '';
     
     try {
+      // セキュリティチェック: ファイルサイズとタイプの再検証
+      if (file.size > 50 * 1024 * 1024) { // 50MB limit
+        throw new Error('File size exceeds 50MB limit');
+      }
+
       const uploadResult = await uploadFile(file, user.id);
       if (uploadResult.error) {
         console.error('File upload error:', uploadResult.error);
+        // Continue without file URL but still save analysis
       } else {
         fileUrl = uploadResult.publicUrl;
-        console.log('File uploaded successfully:', fileUrl);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('File uploaded successfully:', fileUrl);
+        }
       }
 
-      // Generate thumbnail for videos
-      if (isVideo && !uploadResult.error) {
-        const thumbnailResult = await generateAndUploadThumbnail(
-          processedMedia.buffer, 
-          user.id, 
-          file.name
-        );
-        if (thumbnailResult.error) {
-          console.error('Thumbnail upload error:', thumbnailResult.error);
-        } else {
-          thumbnailUrl = thumbnailResult.publicUrl;
-          console.log('Thumbnail uploaded successfully:', thumbnailUrl);
+      // Generate thumbnail for videos with security validation
+      if (isVideo && !uploadResult.error && processedMedia.buffer.length > 0) {
+        try {
+          const thumbnailResult = await generateAndUploadThumbnail(
+            processedMedia.buffer, 
+            user.id, 
+            file.name
+          );
+          if (thumbnailResult.error) {
+            console.error('Thumbnail upload error:', thumbnailResult.error);
+          } else {
+            thumbnailUrl = thumbnailResult.publicUrl;
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Thumbnail uploaded successfully:', thumbnailUrl);
+            }
+          }
+        } catch (thumbnailError) {
+          console.error('Thumbnail generation failed:', thumbnailError);
+          // Continue without thumbnail
         }
       }
     } catch (storageError) {
       console.error('Storage operation failed:', storageError);
-      // Continue processing even if storage fails
+      // Continue processing even if storage fails - analysis is more important
     }
 
-    // Save analysis to database
+    // セキュアなデータベース保存
     try {
       const { error: historyError } = await supabase
         .from('analysis_history')
         .insert({
           user_id: user.id,
-          file_name: file.name,
+          file_name: file.name.substring(0, 255), // Limit filename length
           file_size: file.size,
-          mime_type: file.type,
+          mime_type: file.type.substring(0, 100), // Limit mime type length
           specification: text,
           file_url: fileUrl || null,
-          thumbnail_storage_path: thumbnailUrl || null
+          thumbnail_storage_path: thumbnailUrl || null,
+          created_at: new Date().toISOString()
         });
 
       if (historyError) {
         console.error('Failed to save analysis history:', historyError);
+        // Don't fail the entire request if history save fails
       } else {
-        console.log('Analysis history saved successfully');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Analysis history saved successfully');
+        }
       }
     } catch (dbError) {
       console.error('Database operation failed:', dbError);
       // Continue processing even if database save fails
     }
-    */
 
     // セキュリティ強化: 使用量更新を secure API 経由で実行
     try {

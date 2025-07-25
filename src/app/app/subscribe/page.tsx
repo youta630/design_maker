@@ -1,112 +1,487 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import PricingSection from '@/components/landing/PricingSection';
+import { motion } from 'framer-motion';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Stars, Sphere } from '@react-three/drei';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { supabase } from '@/lib/supabase/client';
+import Blob from '@/components/3d/Blob';
+import * as THREE from 'three';
+
+// 宇宙的な3Dシーン - PostProcessing対応
+function CosmicScene({ currentPlan }: { currentPlan: number }) {
+  return (
+    <>
+      <Stars 
+        radius={300} 
+        depth={60} 
+        count={1500} 
+        factor={4} 
+        saturation={0.3} 
+        fade 
+        speed={0.3}
+      />
+      
+      {/* 高品質ライティング */}
+      <ambientLight intensity={0.3} />
+      <directionalLight position={[10, 10, 5]} intensity={2.0} castShadow />
+      <directionalLight position={[-10, -10, -5]} intensity={1.0} />
+      <pointLight position={[5, 5, 5]} intensity={3.0} color="#ffffff" />
+      <pointLight position={[-5, -5, 5]} intensity={1.5} color="#ffffff" />
+      
+      {/* 本格的な3D有機体オブジェクト */}
+      <Blob currentPlan={currentPlan} scale={0.8} />
+      
+      {/* 軌道を回る粒子 */}
+      <OrbitingParticles />
+      
+      <OrbitControls 
+        enableZoom={false} 
+        enablePan={false}
+        autoRotate
+        autoRotateSpeed={0.15}
+      />
+      
+      {/* PostProcessing Effects */}
+      <EffectComposer>
+        <Bloom 
+          intensity={1.5}
+          kernelSize={3}
+          luminanceThreshold={0.6}
+          luminanceSmoothing={0.9}
+        />
+      </EffectComposer>
+    </>
+  );
+}
+
+
+// 軌道を回る粒子
+function OrbitingParticles() {
+  const groupRef = useRef<THREE.Group>(null);
+  
+  useFrame(() => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += 0.003;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <OrbitingParticle key={i} index={i} />
+      ))}
+    </group>
+  );
+}
+
+function OrbitingParticle({ index }: { index: number }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const radius = 4 + Math.random() * 1;
+  const speed = 0.008 + Math.random() * 0.012;
+  const angle = (index / 8) * Math.PI * 2;
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      const time = state.clock.elapsedTime * speed;
+      meshRef.current.position.x = Math.cos(time + angle) * radius;
+      meshRef.current.position.z = Math.sin(time + angle) * radius;
+      meshRef.current.position.y = Math.sin(time * 3) * 0.6;
+    }
+  });
+
+  return (
+    <Sphere ref={meshRef} args={[0.04, 16, 16]}>
+      <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
+    </Sphere>
+  );
+}
 
 export default function SubscribePage() {
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [currentPlan, setCurrentPlan] = useState<number>(0); // デフォルトでMonthly
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>('free');
+  const [userSubscriptionPlan, setUserSubscriptionPlan] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadSubscriptionData();
+  }, []);
+
+  const loadSubscriptionData = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('No authentication token');
+        return;
+      }
+
+      const response = await fetch('/api/usage', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Subscription data loaded:', data.subscriptionStatus || 'free');
+        setSubscriptionStatus(data.subscriptionStatus || 'free');
+        setUserSubscriptionPlan(data.subscriptionStatus === 'monthly' ? 'monthly' : data.subscriptionStatus === 'yearly' ? 'yearly' : null);
+      }
+    } catch (error) {
+      console.error('Error loading subscription data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubscribe = async (planType: 'monthly' | 'yearly') => {
+    // Security: Validate user authentication state
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      console.error('User not authenticated');
+      // Redirect to login
+      return;
+    }
+
+    if (subscriptionStatus !== 'free') {
+      console.log('User already has a subscription');
+      return;
+    }
+    
+    // Security: Validate plan type against allowed values
+    if (!['monthly', 'yearly'].includes(planType)) {
+      console.error('Invalid plan type');
+      return;
+    }
+    
+    // Here you would implement Stripe checkout logic
+    console.log(`Starting subscription for ${planType} plan`);
+    // Redirect to Stripe checkout or show payment modal
+  };
+
+  const handleCancelSubscription = async () => {
+    try {
+      // Security: Validate user authentication state
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('User not authenticated');
+        return;
+      }
+
+      // Security: Validate user has an active subscription
+      if (subscriptionStatus === 'free') {
+        console.error('No active subscription to cancel');
+        return;
+      }
+
+      // Here you would implement subscription cancellation logic
+      console.log('Cancelling subscription');
+      // Redirect to billing portal or handle cancellation
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+    }
+  };
+
+  const getSubscriptionButtonText = (planType: 'monthly' | 'yearly') => {
+    if (subscriptionStatus === 'free') {
+      return planType === 'monthly' ? 'Start Creating' : 'Best Value';
+    }
+    
+    if (userSubscriptionPlan === planType) {
+      return 'Cancel Plan';
+    }
+    
+    return 'Switch Plan';
+  };
+
+  const isButtonDisabled = (planType: 'monthly' | 'yearly') => {
+    return subscriptionStatus !== 'free' && userSubscriptionPlan !== planType;
+  };
+
+  const plans = [
+    {
+      id: 0,
+      name: "MONTHLY",
+      price: "$7.99",
+      duration: "USD/month",
+      description: "Billed monthly",
+      buttonText: "Start Creating"
+    },
+    {
+      id: 1,
+      name: "YEARLY",
+      price: "$79.99",
+      duration: "USD/year",
+      description: "Billed annually • Save 17%",
+      buttonText: "Best Value",
+      savings: "Save 17%"
+    }
+  ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <motion.div 
+          className="text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <motion.div 
+            className="w-16 h-16 border-4 border-gray-200 border-t-black rounded-full mx-auto mb-6"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          />
+          <p className="text-gray-600 font-light tracking-wide text-lg">Loading...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <Link 
-            href="/app" 
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+    <div className="h-screen w-screen bg-white overflow-x-auto overflow-y-hidden relative">
+      {/* 3D宇宙背景 - 高品質設定 */}
+      <div className="fixed inset-0 z-0">
+        <Canvas 
+          camera={{ position: [0, 0, 8], fov: 75 }}
+          gl={{ 
+            antialias: true, 
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.2,
+            outputColorSpace: THREE.SRGBColorSpace
+          }}
+        >
+          <CosmicScene currentPlan={currentPlan} />
+        </Canvas>
+      </div>
+
+      {/* ヘッダー */}
+      <motion.header 
+        className="relative z-20 px-8 py-6 bg-white/90 backdrop-blur-md border-b border-gray-200"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="flex items-center max-w-6xl mx-auto relative">
+          <div className="flex-1">
+            <Link 
+              href="/app" 
+              className="flex items-center text-gray-600 hover:text-black transition-colors group"
+            >
+              <motion.svg 
+                className="w-5 h-5 mr-3" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+                whileHover={{ x: -3 }}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </motion.svg>
+              <span className="font-medium">Back to App</span>
+            </Link>
+          </div>
+          
+          <motion.h1 
+            className="absolute left-1/2 transform -translate-x-1/2 text-2xl font-black text-gray-900"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
           >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to App
-          </Link>
-          <h1 className="text-xl font-semibold text-gray-900">
             Choose Your Plan
-          </h1>
-          <div></div> {/* Spacer for center alignment */}
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Upgrade to Premium
-          </h2>
-          <p className="text-xl text-gray-600 mb-6">
-            Get unlimited access to design analysis and premium features
-          </p>
+          </motion.h1>
           
-          {/* Usage Status */}
-          <div className="inline-flex items-center px-6 py-3 bg-gray-100 rounded-full mb-8">
-            <div className="w-3 h-3 bg-gradient-to-r from-red-500 to-orange-500 rounded-full mr-3"></div>
-            <span className="text-sm font-medium text-gray-700">
-              Free tier: 7/7 analyses used
-            </span>
-          </div>
+          <div className="flex-1"></div>
         </div>
+      </motion.header>
 
-        {/* Pricing Section */}
-        <div className="flex justify-center">
-          <PricingSection currentSection={1} />
-        </div>
-
-        {/* Features List */}
-        <div className="mt-16 grid md:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Premium Features</h3>
-            <ul className="space-y-2">
-              <li className="flex items-center text-gray-600">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Unlimited design analysis
-              </li>
-              <li className="flex items-center text-gray-600">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Video analysis support
-              </li>
-              <li className="flex items-center text-gray-600">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Priority processing
-              </li>
-              <li className="flex items-center text-gray-600">
-                <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Download history as PDF
-              </li>
-            </ul>
-          </div>
+      {/* 横スクロールコンテンツ */}
+      <div className="relative z-10 h-screen flex items-center overflow-hidden">
+        <motion.div 
+          className="flex w-[300vw] h-full"
+          animate={{ x: `-${currentPlan * 100}vw` }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+        >
           
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Free Tier Limits</h3>
-            <ul className="space-y-2">
-              <li className="flex items-center text-gray-500">
-                <svg className="w-5 h-5 text-gray-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                7 analyses per month
-              </li>
-              <li className="flex items-center text-gray-500">
-                <svg className="w-5 h-5 text-gray-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                Basic processing speed
-              </li>
-              <li className="flex items-center text-gray-500">
-                <svg className="w-5 h-5 text-gray-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                No history download
-              </li>
-            </ul>
+          {/* Monthly Plan - 1画面目 */}
+          <div className="w-screen h-full flex flex-col items-center justify-center px-8 py-8">
+            <motion.div 
+              className="text-center mb-8"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: currentPlan === 0 ? 1 : 0.3, x: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="text-6xl md:text-7xl font-black text-gray-900 mb-3 tracking-tighter">
+                {plans[0]?.name}
+              </h2>
+              <div className="text-3xl font-black text-gray-900 mb-1">
+                {plans[0]?.price}
+              </div>
+              <div className="text-base text-gray-500 mb-2">
+                {plans[0]?.duration}
+              </div>
+              <p className="text-lg text-gray-600 font-medium">
+                {plans[0]?.description}
+              </p>
+            </motion.div>
+
+            <div className="h-32 w-full max-w-md mb-8"></div>
+
+            <motion.div 
+              className="text-center mb-20"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: currentPlan === 0 ? 1 : 0.3, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <motion.button
+                className={`px-12 py-4 rounded-2xl font-black text-xl transition-all duration-300 shadow-2xl ${
+                  isButtonDisabled('monthly') 
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                    : userSubscriptionPlan === 'monthly'
+                    ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-105'
+                    : 'bg-gray-900 text-white hover:bg-gray-800 hover:scale-105'
+                }`}
+                whileHover={!isButtonDisabled('monthly') ? { scale: 1.05, y: -5 } : {}}
+                whileTap={!isButtonDisabled('monthly') ? { scale: 0.95 } : {}}
+                onClick={() => {
+                  if (isButtonDisabled('monthly')) return;
+                  if (userSubscriptionPlan === 'monthly') {
+                    handleCancelSubscription();
+                  } else {
+                    handleSubscribe('monthly');
+                  }
+                  setCurrentPlan(0);
+                }}
+                disabled={isButtonDisabled('monthly')}
+              >
+                {getSubscriptionButtonText('monthly')}
+              </motion.button>
+              <div className="mt-4 text-gray-600 text-base">
+                <p>Unlimited design analysis with AI</p>
+              </div>
+            </motion.div>
           </div>
+
+          {/* Yearly Plan - 2画面目 */}
+          <div className="w-screen h-full flex flex-col items-center justify-center px-8 py-8">
+            <motion.div 
+              className="text-center mb-8"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: currentPlan === 1 ? 1 : 0.3, x: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="text-6xl md:text-7xl font-black text-gray-900 mb-3 tracking-tighter">
+                YEARLY
+              </h2>
+              <div className="text-3xl font-black text-gray-900 mb-1">
+                {plans[1]?.price}
+              </div>
+              <div className="text-base text-gray-500 mb-2">
+                {plans[1]?.duration}
+              </div>
+              <p className="text-lg text-gray-600 font-medium">
+                {plans[1]?.description}
+              </p>
+            </motion.div>
+
+            <div className="h-32 w-full max-w-md mb-8"></div>
+
+            <motion.div 
+              className="text-center mb-20"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: currentPlan === 1 ? 1 : 0.3, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              {plans[1]?.savings && (
+                <motion.div 
+                  className="inline-block mb-4 px-6 py-2 bg-yellow-400 text-black rounded-full font-bold text-base"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  {plans[1].savings}
+                </motion.div>
+              )}
+              
+              <motion.button
+                className={`px-12 py-4 rounded-2xl font-black text-xl transition-all duration-300 shadow-2xl ${
+                  isButtonDisabled('yearly') 
+                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                    : userSubscriptionPlan === 'yearly'
+                    ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-105'
+                    : 'bg-gray-900 text-white hover:bg-gray-800 hover:scale-105'
+                }`}
+                whileHover={!isButtonDisabled('yearly') ? { scale: 1.05, y: -5 } : {}}
+                whileTap={!isButtonDisabled('yearly') ? { scale: 0.95 } : {}}
+                onClick={() => {
+                  if (isButtonDisabled('yearly')) return;
+                  if (userSubscriptionPlan === 'yearly') {
+                    handleCancelSubscription();
+                  } else {
+                    handleSubscribe('yearly');
+                  }
+                  setCurrentPlan(1);
+                }}
+                disabled={isButtonDisabled('yearly')}
+              >
+                {getSubscriptionButtonText('yearly')}
+              </motion.button>
+              <div className="mt-4 text-gray-600 text-base">
+                <p>Unlimited design analysis with AI</p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* 3画面目 - 比較画面 */}
+          <div className="w-screen h-full flex flex-col items-center justify-center px-8 py-8">
+            <motion.div 
+              className="text-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="text-5xl font-black text-gray-900 mb-8">
+                Ready to Transform?
+              </h2>
+              <div className="grid md:grid-cols-2 gap-8 max-w-2xl">
+                {plans.map((plan, index) => (
+                  <motion.div
+                    key={plan.name}
+                    className="p-6 bg-white/80 backdrop-blur-sm border-2 border-gray-200 rounded-3xl hover:border-gray-300 transition-all cursor-pointer"
+                    whileHover={{ scale: 1.02, y: -5 }}
+                    onClick={() => setCurrentPlan(index)}
+                  >
+                    <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                    <p className="text-3xl font-black mb-2">{plan.price}</p>
+                    <p className="text-gray-600">{plan.duration}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* プラン切り替えボタン - FREEを削除 */}
+      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30">
+        <div className="flex space-x-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-gray-200 shadow-xl">
+          {plans.map((plan, index) => (
+            <motion.button
+              key={plan.id}
+              onClick={() => setCurrentPlan(index)}
+              className={`px-8 py-3 rounded-xl font-bold transition-all ${
+                currentPlan === index 
+                  ? 'bg-gray-900 text-white shadow-lg' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {plan.name}
+            </motion.button>
+          ))}
         </div>
-      </main>
+      </div>
+
     </div>
   );
 }

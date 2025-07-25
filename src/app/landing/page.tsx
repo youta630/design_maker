@@ -49,7 +49,7 @@ export default function LandingPage() {
     offset: ["start start", "end end"]
   });
 
-  const totalSections = 5;
+  const totalSections = 6;
   
   const sectionProgress = useTransform(
     scrollYProgress,
@@ -72,71 +72,88 @@ export default function LandingPage() {
   const sections = [
     {
       id: 0,
-      title: "DESIGN SPEC",
-      subtitle: "GENERATOR",
-      description: "AI-powered design analysis for developers",
-      code: `// Transform designs into code
-const spec = await analyzeDesign({
-  image: uploadedFile,
-  model: 'gemini-2.5-flash',
+      title: "SNAP 2 SPEC",
+      subtitle: "",
+      description: "Screenshot to specification in seconds",
+      code: `// Upload screenshot, get spec
+const spec = await snap2spec({
+  image: screenshot,
   output: 'markdown'
 });
 
-console.log(spec.components);
 console.log(spec.layout);
-console.log(spec.colors);`
+console.log(spec.components);
+console.log(spec.styles);`
     },
     {
       id: 1,
-      title: "ANALYZE",
-      subtitle: "SMART DETECTION",
-      description: "AI identifies components, layouts, and patterns",
-      code: `// Component recognition
-const components = await detect({
-  type: 'components',
-  confidence: 0.95
-});
+      title: "UPLOAD",
+      subtitle: "DRAG & DROP",
+      description: "Any screenshot, mockup, or design image",
+      code: `// Simple upload
+const file = document.getElementById('upload').files[0];
 
-components.forEach(comp => {
-  console.log(\`\${comp.type}: \${comp.properties}\`);
-});`
+snap2spec.upload(file)
+  .then(result => {
+    console.log('Upload complete:', result.id);
+    console.log('Processing started...');
+  });`
     },
     {
       id: 2,
-      title: "GENERATE",
-      subtitle: "TECHNICAL SPECS",
-      description: "Detailed documentation for implementation",
-      code: `// Generate specifications
-const documentation = await generate({
-  format: 'markdown',
-  sections: [
-    'layout', 'components', 
-    'styling', 'interactions'
-  ]
-});
+      title: "ANALYZE",
+      subtitle: "AI DETECTION",
+      description: "Identify components, layouts, and styles",
+      code: `// AI analysis
+const analysis = await snap2spec.analyze(imageId);
 
-export default documentation;`
+console.log('Found:', analysis.components.length, 'components');
+console.log('Layout:', analysis.layout.type);
+console.log('Colors:', analysis.colors);`
     },
     {
       id: 3,
-      title: "IMPLEMENT",
-      subtitle: "READY TO CODE",
-      description: "Copy-paste ready development guidelines",
-      code: `// Implementation guide
-export const Button = styled.button\`
-  padding: 12px 24px;
-  border-radius: 8px;
-  background: #000;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-\`;`
+      title: "GENERATE",
+      subtitle: "MARKDOWN SPECS",
+      description: "Clean specifications ready for development",
+      code: `// Generate spec document
+const spec = await snap2spec.generate(analysisId);
+
+console.log(spec.markdown);
+// Output: Complete specification with
+// - Layout structure
+// - Component details  
+// - Style definitions`
     },
     {
       id: 4,
+      title: "PRICING",
+      subtitle: "FLEXIBLE PLANS",
+      description: "Choose the plan that fits your needs",
+      pricing: {
+        free: "First 7 analyses FREE",
+        monthly: "$7.99/month - Unlimited",
+        yearly: "$79.99/year - 17% off"
+      },
+      code: `// Pricing made simple
+const plans = {
+  free: {
+    analyses: 7,
+    price: 0,
+    features: ['Basic AI analysis', 'Markdown output']
+  },
+  pro: {
+    analyses: 'unlimited',
+    price: 1000,
+    features: ['All AI models', 'Priority support']
+  }
+};`
+    },
+    {
+      id: 5,
       title: "READY",
-      subtitle: "START BUILDING",
-      description: "Transform your design workflow today",
+      subtitle: "START NOW",
+      description: "Speed up your development workflow",
       code: ""
     }
   ];
@@ -146,13 +163,13 @@ export const Button = styled.button\`
   return (
     <main ref={containerRef} className="relative">
       {/* START NOW button - shows only on READY section */}
-      {currentSection === 4 && (
+      {currentSection === 5 && (
         <div style={{ position: 'fixed', bottom: '120px', left: '50%', transform: 'translateX(-50%)', zIndex: 99999 }}>
           <GoogleAuthButton 
-            className="px-16 py-6 bg-white text-black text-xl font-bold hover:bg-gray-200 shadow-2xl"
+            className="px-16 py-6 bg-white text-black text-xl font-bold hover:bg-gray-100 shadow-2xl border border-gray-300"
             redirectTo="/app"
           >
-            START NOW
+            Start your free trial
           </GoogleAuthButton>
         </div>
       )}
@@ -161,14 +178,12 @@ export const Button = styled.button\`
       <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 99999 }}>
         <GoogleAuthButton 
           redirectTo="/app" 
-          className={`px-8 py-3 text-sm ${
-            currentSection === 4 
-              ? 'border-2 border-white text-white hover:bg-white hover:text-black' 
-              : ''
+          className={`px-6 py-3 text-sm ${
+            currentSection === 5 
+              ? 'bg-white border-2 border-white text-black hover:bg-gray-100' 
+              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
           }`}
-        >
-          SIGN IN
-        </GoogleAuthButton>
+        />
       </div>
       
       {/* Fixed background */}
@@ -177,7 +192,7 @@ export const Button = styled.button\`
         style={{
           background: currentSection === 0 
             ? 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%)'
-            : currentSection === 4
+            : currentSection === 5
             ? 'linear-gradient(135deg, #000000 0%, #111111 50%, #000000 100%)'
             : 'linear-gradient(135deg, #ffffff 0%, #000000 100%)'
         }}
@@ -252,18 +267,20 @@ export const Button = styled.button\`
                   }}
                   transition={{ delay: 1.2, duration: 1 }}
                 >
-                  DESIGN SPEC
+                  SNAP
                   <br />
-                  GENERATOR
+                  2
+                  <br />
+                  SPEC
                 </motion.h1>
 
                 <motion.p 
-                  className="text-2xl md:text-3xl font-medium text-gray-600 tracking-[0.3em] uppercase mb-16"
+                  className="text-2xl md:text-3xl font-medium text-gray-600 tracking-[0.3em] uppercase mb-8"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 2, duration: 1 }}
                 >
-                  AI • ANALYSIS • AUTOMATION
+                  SCREENSHOT • ANALYZE • SPEC
                 </motion.p>
 
 
@@ -385,8 +402,153 @@ export const Button = styled.button\`
             </div>
           )}
 
-          {/* Final READY section */}
+          {/* Pricing section - storytelling format */}
           {currentSection === 4 && (
+            <div className="grid grid-cols-2 gap-20 items-center h-full">
+              
+              {/* Left: Title Area */}
+              <div className="space-y-6 flex-1">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`pricing-title-${currentSection}`}
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                    className="space-y-4"
+                  >
+                    <motion.div 
+                      className="text-sm font-bold text-gray-500 tracking-[0.3em]"
+                    >
+                      [ 05 / 06 ]
+                    </motion.div>
+
+                    <motion.h1 
+                      className="text-6xl md:text-7xl font-black text-black leading-none tracking-tight"
+                    >
+                      PRICING
+                    </motion.h1>
+
+                    <motion.h2 
+                      className="text-2xl md:text-3xl font-bold text-gray-600 tracking-tight"
+                    >
+                      FLEXIBLE PLANS
+                    </motion.h2>
+
+                    <motion.p 
+                      className="text-lg font-medium text-gray-700 leading-relaxed"
+                    >
+                      Choose the plan that fits your needs
+                    </motion.p>
+
+                    {/* Free Trial Info */}
+                    <div className="pt-8 space-y-3">
+                      <p className="text-3xl font-black text-emerald-500 tracking-tight uppercase">
+                        FREE TRIAL
+                      </p>
+                      <p className="text-xl font-bold text-black">
+                        {currentStory?.pricing?.free || "First 7 analyses FREE"}
+                      </p>
+                    </div>
+
+                    {/* Pricing Cards */}
+                    <div className="grid grid-cols-1 gap-4 pt-6">
+                      <div className="p-6 bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                        <div className="space-y-3">
+                          <p className="text-lg font-bold text-black uppercase tracking-wide">
+                            MONTHLY
+                          </p>
+                          <p className="text-3xl font-black text-black">
+                            {currentStory?.pricing?.monthly || "$7.99/month - Unlimited"}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Unlimited analyses • All AI models • Priority support
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-6 bg-white border-2 border-black rounded-lg shadow-lg hover:shadow-xl transition-shadow relative">
+                        <div className="absolute -top-2 -right-2 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          BEST VALUE
+                        </div>
+                        <div className="space-y-3">
+                          <p className="text-lg font-bold text-emerald-500 uppercase tracking-wide">
+                            YEARLY
+                          </p>
+                          <p className="text-3xl font-black text-black">
+                            {currentStory?.pricing?.yearly || "$79.99/year - 17% off"}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Everything in Monthly • 17% savings • 2 months free
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <motion.div 
+                      className="w-full h-1 bg-gray-200 rounded-full overflow-hidden"
+                    >
+                      <motion.div 
+                        className="h-full bg-black rounded-full"
+                        style={{ 
+                          scaleX: progressBarTransform,
+                          originX: 0
+                        }}
+                      />
+                    </motion.div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Right: Code Editor Area */}
+              <div className="relative">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                      key={`pricing-code-${currentSection}`}
+                      initial={{ opacity: 0, x: 50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 50 }}
+                      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                      className="relative"
+                    >
+                      {/* Code Editor */}
+                      <div className="bg-white border-2 border-black shadow-2xl overflow-hidden">
+                        {/* Title bar */}
+                        <div className="flex items-center justify-between px-6 py-4 bg-gray-100 border-b-2 border-black">
+                          <div className="flex space-x-3">
+                            <div className="w-3 h-3 bg-black rounded-full"></div>
+                            <div className="w-3 h-3 bg-black rounded-full"></div>
+                            <div className="w-3 h-3 bg-black rounded-full"></div>
+                          </div>
+                          <div className="text-sm font-bold text-black">
+                            pricing-config.js
+                          </div>
+                        </div>
+                        
+                        {/* Code area */}
+                        <div className="p-8 font-mono text-sm bg-black text-white">
+                          <motion.pre 
+                            className="leading-relaxed whitespace-pre-wrap"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.3, duration: 1 }}
+                          >
+                            <TypewriterCode 
+                              text={currentStory?.code || ''} 
+                              trigger={currentSection}
+                            />
+                          </motion.pre>
+                        </div>
+                      </div>
+                    </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+
+          {/* Final READY section */}
+          {currentSection === 5 && (
             <AnimatePresence>
               <motion.div 
                 className="text-center w-full"
@@ -440,7 +602,7 @@ export const Button = styled.button\`
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.8 }}
                 >
-                  TRANSFORM YOUR WORKFLOW
+                  SPEED UP DEVELOPMENT
                 </motion.p>
 
               </motion.div>
@@ -450,7 +612,7 @@ export const Button = styled.button\`
       </div>
 
       {/* Scroll area */}
-      <div className="h-[500vh] relative z-30">
+      <div className="h-[600vh] relative z-30">
         {/* Scroll indicator */}
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40">
           <motion.div 

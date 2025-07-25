@@ -8,9 +8,21 @@ interface MediaUploadProps {
   onMediaUpload: (file: File, language: string) => void;
   isLoading: boolean;
   resetTrigger?: number; // Add trigger for reset
+  primaryButtonColor?: string; // Custom color for main buttons
+  viewMode?: 'full' | 'compact'; // Display mode
+  usageCount?: number; // Current usage count
+  monthlyLimit?: number; // Monthly limit
 }
 
-export default function MediaUpload({ onMediaUpload, isLoading, resetTrigger }: MediaUploadProps) {
+export default function MediaUpload({ 
+  onMediaUpload, 
+  isLoading, 
+  resetTrigger, 
+  primaryButtonColor = '#000000',
+  viewMode = 'full',
+  usageCount = 0,
+  monthlyLimit = 7
+}: MediaUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<string>('ja');
@@ -42,10 +54,19 @@ export default function MediaUpload({ onMediaUpload, isLoading, resetTrigger }: 
   }, []);
 
   const handleSubmit = () => {
+    // セキュリティチェック: 使用制限確認
+    if (usageCount >= monthlyLimit) {
+      return; // 制限に達している場合は処理を停止
+    }
+    
     if (selectedFile) {
       onMediaUpload(selectedFile, selectedLanguage);
     }
   };
+
+  // 制限チェック用のヘルパー関数
+  const isAtLimit = usageCount >= monthlyLimit;
+  const isAnalyzeDisabled = !selectedFile || isLoading || isAtLimit;
 
   const handleRemoveFile = () => {
     setPreview(null);
@@ -60,8 +81,44 @@ export default function MediaUpload({ onMediaUpload, isLoading, resetTrigger }: 
       'video/*': ['.mp4', '.mov', '.webm', '.wmv', '.avi', '.mkv']
     },
     maxFiles: 1,
-    disabled: isLoading
+    disabled: isLoading || isAtLimit
   });
+
+  // compactモードでは最小限の表示のみ
+  if (viewMode === 'compact' && preview) {
+    return (
+      <div className="w-full">
+        <div className="relative">
+          {fileType === 'video' ? (
+            <div className="w-full bg-gray-50 border border-gray-200 rounded-lg shadow-sm flex flex-col items-center justify-center p-4">
+              <div className="mb-2">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-sm font-medium text-gray-800 mb-1 text-center break-words max-w-full">
+                {selectedFile?.name || 'Video File'}
+              </h3>
+              <div className="text-xs text-gray-500 text-center">
+                {selectedFile && (
+                  <span>{(selectedFile.size / (1024 * 1024)).toFixed(1)} MB</span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Image 
+              src={preview} 
+              alt="Uploaded media" 
+              className="w-full rounded-lg shadow-sm border border-gray-200"
+              width={300}
+              height={200}
+              style={{ objectFit: 'contain', maxHeight: '200px' }}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -75,9 +132,10 @@ export default function MediaUpload({ onMediaUpload, isLoading, resetTrigger }: 
             : 'border-gray-300 hover:border-gray-400'
           }
           ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
+          ${isAtLimit ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
-        <input {...getInputProps()} />
+        <input {...getInputProps()} disabled={isLoading || isAtLimit} />
         
         {preview ? (
           <div className="space-y-6">
@@ -129,7 +187,18 @@ export default function MediaUpload({ onMediaUpload, isLoading, resetTrigger }: 
                     e.stopPropagation();
                     handleRemoveFile();
                   }}
-                  className="absolute top-2 right-2 w-8 h-8 bg-black bg-opacity-70 hover:bg-opacity-90 rounded-full flex items-center justify-center transition-all duration-200"
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200"
+                  style={{ 
+                    backgroundColor: `${primaryButtonColor}B3`, // 70% opacity
+                  }}
+                  onMouseEnter={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.backgroundColor = `${primaryButtonColor}E6`; // 90% opacity for hover
+                  }}
+                  onMouseLeave={(e) => {
+                    const target = e.target as HTMLButtonElement;
+                    target.style.backgroundColor = `${primaryButtonColor}B3`; // Back to 70% opacity
+                  }}
                   title="Remove file"
                 >
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,19 +237,42 @@ export default function MediaUpload({ onMediaUpload, isLoading, resetTrigger }: 
                       e.stopPropagation();
                       handleSubmit();
                     }}
-                    className="px-6 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors duration-200 flex items-center space-x-2"
-                    disabled={!selectedFile}
+                    className="px-6 py-3 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                    style={{ 
+                      backgroundColor: primaryButtonColor,
+                      borderColor: primaryButtonColor 
+                    }}
+                    onMouseEnter={(e) => {
+                      const target = e.target as HTMLButtonElement;
+                      target.style.backgroundColor = `${primaryButtonColor}CC`; // Add transparency for hover
+                    }}
+                    onMouseLeave={(e) => {
+                      const target = e.target as HTMLButtonElement;
+                      target.style.backgroundColor = primaryButtonColor;
+                    }}
+                    disabled={isAnalyzeDisabled}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
-                    <span>Analyze {fileType === 'video' ? 'Video' : 'Image'}</span>
+                    <span>
+                      {isAtLimit 
+                        ? `Limit Reached (${usageCount}/${monthlyLimit})` 
+                        : `Analyze ${fileType === 'video' ? 'Video' : 'Image'}`
+                      }
+                    </span>
                   </button>
                 </div>
                 
-                <p className="text-xs text-gray-500 text-center">
-                  Click or drag to change {fileType === 'video' ? 'video' : 'image'}
-                </p>
+                {isAtLimit ? (
+                  <p className="text-xs text-red-500 text-center">
+                    Monthly limit reached. Please upgrade to continue.
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 text-center">
+                    Click or drag to change {fileType === 'video' ? 'video' : 'image'}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -200,9 +292,15 @@ export default function MediaUpload({ onMediaUpload, isLoading, resetTrigger }: 
                 Videos: MP4, MOV, WebM, WMV, AVI, MKV<br/>
                 (max 50MB)
               </p>
-              <p className="text-xs text-gray-400 mb-4">
-                Drag & drop or click to select
-              </p>
+              {isAtLimit ? (
+                <p className="text-xs text-red-500 mb-4">
+                  Monthly limit reached ({usageCount}/{monthlyLimit})
+                </p>
+              ) : (
+                <p className="text-xs text-gray-400 mb-4">
+                  Drag & drop or click to select
+                </p>
+              )}
               
               {/* Language Selection */}
               <div 
@@ -235,15 +333,6 @@ export default function MediaUpload({ onMediaUpload, isLoading, resetTrigger }: 
         )}
       </div>
 
-      <div className="mt-6 p-4 bg-gray-100 border border-gray-300 rounded">
-        <p className="text-sm font-medium text-gray-800 mb-2">Tips for better analysis:</p>
-        <ul className="text-xs text-gray-700 space-y-1">
-          <li>• Images: Use high-resolution UI screenshots, mockups, or wireframes</li>
-          <li>• Videos: Screen recordings of UI interactions work best</li>
-          <li>• Full-screen captures provide more context</li>
-          <li>• Files are automatically optimized for Gemini 2.5 Flash</li>
-        </ul>
-      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * セキュアな使用量取得API
@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
@@ -100,6 +101,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
