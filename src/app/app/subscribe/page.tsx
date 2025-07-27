@@ -279,6 +279,19 @@ export default function SubscribePage() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </motion.svg>
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" className="mr-2">
+                <defs>
+                  <linearGradient id="claritySmall" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#000" stopOpacity="0.15"/>
+                    <stop offset="30%" stopColor="#000" stopOpacity="0.4"/>
+                    <stop offset="70%" stopColor="#000" stopOpacity="0.8"/>
+                    <stop offset="100%" stopColor="#000" stopOpacity="1"/>
+                  </linearGradient>
+                </defs>
+                <path d="M6 16L16 6L26 16L16 26L6 16z" stroke="url(#claritySmall)" strokeWidth="1.5" fill="none"/>
+                <path d="M6 16h20M16 6v20" stroke="url(#claritySmall)" strokeWidth="0.8"/>
+                <circle cx="16" cy="16" r="1.5" fill="#000"/>
+              </svg>
               <span className="font-medium">Back to App</span>
             </Link>
           </div>

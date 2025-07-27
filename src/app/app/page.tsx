@@ -247,9 +247,44 @@ export default function AppPage() {
       {/* Header */}
       <header className="border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">
-            Design Spec Generator
-          </h1>
+          <div className="flex items-center">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="clarity" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#000" stopOpacity="0.15"/>
+                  <stop offset="30%" stopColor="#000" stopOpacity="0.4"/>
+                  <stop offset="70%" stopColor="#000" stopOpacity="0.8"/>
+                  <stop offset="100%" stopColor="#000" stopOpacity="1"/>
+                </linearGradient>
+                <linearGradient id="clarityFill" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#000" stopOpacity="0.05"/>
+                  <stop offset="100%" stopColor="#000" stopOpacity="0.2"/>
+                </linearGradient>
+              </defs>
+              
+              {/* 1つの統一された結晶 - 霧から明確さへのグラデーション */}
+              <path d="M6 16L16 6L26 16L16 26L6 16z" 
+                    stroke="url(#clarity)" 
+                    strokeWidth="2" 
+                    fill="url(#clarityFill)"/>
+              
+              {/* 内部構造線 - 同じグラデーション */}
+              <path d="M6 16h20M16 6v20" 
+                    stroke="url(#clarity)" 
+                    strokeWidth="1"/>
+              
+              {/* 中心核 */}
+              <circle cx="16" cy="16" r="2" fill="#000"/>
+              
+              {/* 理解の放射 - 右側のみ明確 */}
+              <g opacity="0.6">
+                <path d="M22 10l2-2M22 22l2 2M26 16h3" 
+                      stroke="#000" 
+                      strokeWidth="1" 
+                      strokeLinecap="round"/>
+              </g>
+            </svg>
+          </div>
           
           <div className="flex items-center space-x-3">
             {/* Subscribe Button - 条件分岐: 未登録時は虹色固定、登録後はカスタム色 */}

@@ -322,11 +322,26 @@ const plans = {
                       [ {String(currentSection + 1).padStart(2, '0')} / {String(totalSections).padStart(2, '0')} ]
                     </motion.div>
 
-                    <motion.h1 
-                      className="text-6xl md:text-7xl font-black text-black leading-none tracking-tight"
-                    >
-                      {currentStory?.title}
-                    </motion.h1>
+                    <div className="flex items-center space-x-4">
+                      <svg width="64" height="64" viewBox="0 0 32 32" fill="none" className="flex-shrink-0">
+                        <defs>
+                          <linearGradient id="clarityLanding" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#000" stopOpacity="0.15"/>
+                            <stop offset="30%" stopColor="#000" stopOpacity="0.4"/>
+                            <stop offset="70%" stopColor="#000" stopOpacity="0.8"/>
+                            <stop offset="100%" stopColor="#000" stopOpacity="1"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M6 16L16 6L26 16L16 26L6 16z" stroke="url(#clarityLanding)" strokeWidth="2" fill="none"/>
+                        <path d="M6 16h20M16 6v20" stroke="url(#clarityLanding)" strokeWidth="1"/>
+                        <circle cx="16" cy="16" r="2" fill="#000"/>
+                      </svg>
+                      <motion.h1 
+                        className="text-6xl md:text-7xl font-black text-black leading-none tracking-tight"
+                      >
+                        {currentStory?.title}
+                      </motion.h1>
+                    </div>
 
                     <motion.h2 
                       className="text-2xl md:text-3xl font-bold text-gray-600 tracking-tight"
@@ -423,11 +438,26 @@ const plans = {
                       [ 05 / 06 ]
                     </motion.div>
 
-                    <motion.h1 
-                      className="text-6xl md:text-7xl font-black text-black leading-none tracking-tight"
-                    >
-                      PRICING
-                    </motion.h1>
+                    <div className="flex items-center space-x-4">
+                      <svg width="64" height="64" viewBox="0 0 32 32" fill="none" className="flex-shrink-0">
+                        <defs>
+                          <linearGradient id="clarityPricing" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#000" stopOpacity="0.15"/>
+                            <stop offset="30%" stopColor="#000" stopOpacity="0.4"/>
+                            <stop offset="70%" stopColor="#000" stopOpacity="0.8"/>
+                            <stop offset="100%" stopColor="#000" stopOpacity="1"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M6 16L16 6L26 16L16 26L6 16z" stroke="url(#clarityPricing)" strokeWidth="2" fill="none"/>
+                        <path d="M6 16h20M16 6v20" stroke="url(#clarityPricing)" strokeWidth="1"/>
+                        <circle cx="16" cy="16" r="2" fill="#000"/>
+                      </svg>
+                      <motion.h1 
+                        className="text-6xl md:text-7xl font-black text-black leading-none tracking-tight"
+                      >
+                        PRICING
+                      </motion.h1>
+                    </div>
 
                     <motion.h2 
                       className="text-2xl md:text-3xl font-bold text-gray-600 tracking-tight"

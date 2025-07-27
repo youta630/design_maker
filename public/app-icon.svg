@@ -1,0 +1,32 @@
+<!-- Design Spec Generator App Icon - Unified Clarity Diamond -->
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#1a1a1a"/>
+  
+  <defs>
+    <linearGradient id="clarityAppIcon" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3"/>
+      <stop offset="30%" stopColor="#ffffff" stopOpacity="0.6"/>
+      <stop offset="70%" stopColor="#ffffff" stopOpacity="0.9"/>
+      <stop offset="100%" stopColor="#ffffff" stopOpacity="1"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Main Clarity Diamond - Large scale for 512x512 -->
+  <path d="M128 256L256 128L384 256L256 384L128 256z" 
+        stroke="url(#clarityAppIcon)" 
+        strokeWidth="16" 
+        fill="none"/>
+  
+  <!-- Inner structure lines -->
+  <path d="M128 256h256M256 128v256" 
+        stroke="url(#clarityAppIcon)" 
+        strokeWidth="8" 
+        opacity="0.8"/>
+  
+  <!-- Central core -->
+  <circle cx="256" cy="256" r="24" fill="#ffffff"/>
+  
+  <!-- Subtle glow effect -->
+  <circle cx="256" cy="256" r="36" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.3"/>
+</svg>

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 
 interface MediaUploadProps {
@@ -81,8 +82,13 @@ export default function MediaUpload({
       'video/*': ['.mp4', '.mov', '.webm', '.wmv', '.avi', '.mkv']
     },
     maxFiles: 1,
-    disabled: isLoading || isAtLimit
+    disabled: isLoading || isAtLimit,
+    noClick: false,
+    noKeyboard: false
   });
+
+  // Extract only the necessary props to avoid conflicts
+  const { onClick, onKeyDown, onFocus, onBlur, onDragEnter, onDragLeave, onDragOver, onDrop: onDropProp } = getRootProps();
 
   // compactモードでは最小限の表示のみ
   if (viewMode === 'compact' && preview) {
@@ -121,19 +127,33 @@ export default function MediaUpload({
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div
-        {...getRootProps()}
+    <div className="w-full max-w-3xl mx-auto">
+      <motion.div
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onDragEnter={onDragEnter}
+        onDragLeave={onDragLeave}
+        onDragOver={onDragOver}
+        onDrop={onDropProp}
+        tabIndex={0}
+        role="button"
+        aria-label="Upload design media"
         className={`
-          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          transition-colors duration-200
+          relative border-2 border-dashed rounded-3xl p-12 text-center cursor-pointer
+          transition-all duration-300 backdrop-blur-sm
           ${isDragActive 
-            ? 'border-blue-400 bg-blue-50' 
-            : 'border-gray-300 hover:border-gray-400'
+            ? 'border-gray-900 bg-gray-50 scale-[1.02]' 
+            : 'border-gray-200 hover:border-gray-400 bg-white/80'
           }
           ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
           ${isAtLimit ? 'opacity-50 cursor-not-allowed' : ''}
         `}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        whileHover={!isLoading && !isAtLimit ? { scale: 1.01 } : {}}
       >
         <input {...getInputProps()} disabled={isLoading || isAtLimit} />
         
@@ -232,36 +252,30 @@ export default function MediaUpload({
                 
                 {/* Submit button */}
                 <div className="flex justify-center">
-                  <button
+                  <motion.button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleSubmit();
                     }}
-                    className="px-6 py-3 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                    style={{ 
-                      backgroundColor: primaryButtonColor,
-                      borderColor: primaryButtonColor 
-                    }}
-                    onMouseEnter={(e) => {
-                      const target = e.target as HTMLButtonElement;
-                      target.style.backgroundColor = `${primaryButtonColor}CC`; // Add transparency for hover
-                    }}
-                    onMouseLeave={(e) => {
-                      const target = e.target as HTMLButtonElement;
-                      target.style.backgroundColor = primaryButtonColor;
-                    }}
+                    className={`px-12 py-4 rounded-2xl font-black text-xl transition-all duration-300 shadow-2xl flex items-center space-x-3 ${
+                      isAnalyzeDisabled 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-gray-900 text-white hover:bg-gray-800'
+                    }`}
+                    whileHover={!isAnalyzeDisabled ? { scale: 1.05, y: -5 } : {}}
+                    whileTap={!isAnalyzeDisabled ? { scale: 0.95 } : {}}
                     disabled={isAnalyzeDisabled}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                     <span>
                       {isAtLimit 
                         ? `Limit Reached (${usageCount}/${monthlyLimit})` 
-                        : `Analyze ${fileType === 'video' ? 'Video' : 'Image'}`
+                        : `Analyze ${fileType === 'video' ? 'Video' : 'Design'}`
                       }
                     </span>
-                  </button>
+                  </motion.button>
                 </div>
                 
                 {isAtLimit ? (
@@ -277,61 +291,107 @@ export default function MediaUpload({
             )}
           </div>
         ) : (
-          <div className="space-y-6">
-            <div className="w-16 h-16 mx-auto bg-gray-100 rounded-xl flex items-center justify-center">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <motion.div 
+            className="space-y-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+            {/* Upload Icon */}
+            <motion.div 
+              className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-            </div>
-            <div>
-              <p className="text-xl font-semibold text-gray-800 mb-2">
-                Upload UI Design Media
+            </motion.div>
+            
+            {/* Main Content */}
+            <div className="space-y-4">
+              <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+                Upload Design Media
+              </h2>
+              <p className="text-lg text-gray-600 font-light">
+                Images, videos, or any UI design asset
               </p>
-              <p className="text-sm text-gray-500 mb-3">
-                Images: PNG, JPG, JPEG, WebP, GIF<br/>
-                Videos: MP4, MOV, WebM, WMV, AVI, MKV<br/>
-                (max 50MB)
-              </p>
+              
+              {/* Supported formats */}
+              <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
+                {['PNG', 'JPG', 'WebP', 'MP4', 'MOV'].map((format) => (
+                  <span 
+                    key={format}
+                    className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full"
+                  >
+                    {format}
+                  </span>
+                ))}
+              </div>
+              
+              {/* Status Messages */}
               {isAtLimit ? (
-                <p className="text-xs text-red-500 mb-4">
+                <motion.p 
+                  className="text-red-500 font-medium"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
                   Monthly limit reached ({usageCount}/{monthlyLimit})
-                </p>
+                </motion.p>
               ) : (
-                <p className="text-xs text-gray-400 mb-4">
-                  Drag & drop or click to select
+                <p className="text-gray-400 font-light">
+                  Drag & drop or click to select • Max 50MB
                 </p>
               )}
-              
-              {/* Language Selection */}
-              <div 
-                className="flex items-center justify-center space-x-2"
+            </div>
+            
+            {/* Language Selection */}
+            <motion.div 
+              className="flex items-center justify-center space-x-3"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <span className="text-sm text-gray-500 font-medium">Output Language:</span>
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+                className="px-4 py-2 border border-gray-200 rounded-xl bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-all duration-200"
+                disabled={isLoading}
                 onClick={(e) => e.stopPropagation()}
               >
-                <span className="text-xs text-gray-500">Output Language:</span>
-                <select
-                  value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  disabled={isLoading}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <option value="ja">日本語</option>
-                  <option value="en">English</option>
-                  <option value="ko">한국어</option>
-                  <option value="zh">中文</option>
-                </select>
-              </div>
-            </div>
-          </div>
+                <option value="ja">日本語</option>
+                <option value="en">English</option>
+                <option value="ko">한국어</option>
+                <option value="zh">中文</option>
+              </select>
+            </motion.div>
+          </motion.div>
         )}
 
         {isLoading && (
-          <div className="mt-6">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-800 mx-auto"></div>
-            <p className="text-sm text-gray-600 mt-3">Analyzing {fileType === 'video' ? 'video' : 'image'}...</p>
-          </div>
+          <motion.div 
+            className="mt-8 space-y-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <motion.div 
+              className="w-16 h-16 border-4 border-gray-200 border-t-gray-900 rounded-full mx-auto"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.p 
+              className="text-lg text-gray-600 font-light tracking-wide"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              Analyzing {fileType === 'video' ? 'video' : 'design'}...
+            </motion.p>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
     </div>
   );

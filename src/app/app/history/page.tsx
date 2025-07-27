@@ -119,10 +119,23 @@ export default function HistoryPage() {
             </div>
             <Link 
               href="/app" 
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               title="Back to App"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
+                <defs>
+                  <linearGradient id="clarityHistory" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#000" stopOpacity="0.15"/>
+                    <stop offset="30%" stopColor="#000" stopOpacity="0.4"/>
+                    <stop offset="70%" stopColor="#000" stopOpacity="0.8"/>
+                    <stop offset="100%" stopColor="#000" stopOpacity="1"/>
+                  </linearGradient>
+                </defs>
+                <path d="M6 16L16 6L26 16L16 26L6 16z" stroke="url(#clarityHistory)" strokeWidth="1.5" fill="none"/>
+                <path d="M6 16h20M16 6v20" stroke="url(#clarityHistory)" strokeWidth="0.8"/>
+                <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
+              </svg>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </Link>
