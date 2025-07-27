@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+// Runtime configuration for Node.js environment
+export const runtime = 'nodejs';
+
 /**
  * セキュアな使用量取得API
  * フロントエンドからの直接DB操作を防ぐために作成

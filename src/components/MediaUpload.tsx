@@ -78,8 +78,8 @@ export default function MediaUpload({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif'],
-      'video/*': ['.mp4', '.mov', '.webm', '.wmv', '.avi', '.mkv']
+      'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'],
+      'video/*': ['.mp4', '.mov', '.webm', '.mpeg', '.3gp', '.flv']
     },
     maxFiles: 1,
     disabled: isLoading || isAtLimit,
@@ -319,7 +319,7 @@ export default function MediaUpload({
               
               {/* Supported formats */}
               <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
-                {['PNG', 'JPG', 'WebP', 'MP4', 'MOV'].map((format) => (
+                {['PNG', 'JPG', 'WebP', 'GIF', 'SVG', 'MP4', 'MOV', 'WebM'].map((format) => (
                   <span 
                     key={format}
                     className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full"
@@ -340,7 +340,7 @@ export default function MediaUpload({
                 </motion.p>
               ) : (
                 <p className="text-gray-400 font-light">
-                  Drag & drop or click to select • Max 50MB
+                  Drag & drop or click to select • Max 10MB (images), 50MB (videos)
                 </p>
               )}
             </div>

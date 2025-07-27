@@ -157,9 +157,29 @@ export default function SubscribePage() {
       return;
     }
     
-    // Here you would implement Stripe checkout logic
-    console.log(`Starting subscription for ${planType} plan`);
-    // Redirect to Stripe checkout or show payment modal
+    try {
+      // Get user info for Polar checkout
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('User not found');
+        return;
+      }
+
+      // Create Polar checkout URL
+      const productId = planType === 'monthly' ? 'xxxx' : 'xxxx'; // TODO: Replace with actual Product IDs from Polar dashboard
+      const checkoutUrl = new URL('/api/checkout', window.location.origin);
+      
+      checkoutUrl.searchParams.set('products', productId);
+      checkoutUrl.searchParams.set('customerExternalId', user.id);
+      checkoutUrl.searchParams.set('customerEmail', user.email || '');
+      checkoutUrl.searchParams.set('successUrl', `${window.location.origin}/app?upgraded=1`);
+      
+      // Redirect to Polar checkout
+      window.location.href = checkoutUrl.toString();
+      
+    } catch (error) {
+      console.error('Checkout initiation failed:', error);
+    }
   };
 
   const handleCancelSubscription = async () => {
@@ -177,11 +197,12 @@ export default function SubscribePage() {
         return;
       }
 
-      // Here you would implement subscription cancellation logic
-      console.log('Cancelling subscription');
-      // Redirect to billing portal or handle cancellation
+      // Redirect to Polar Customer Portal for subscription management
+      const portalUrl = `/api/portal`;
+      window.location.href = portalUrl;
+      
     } catch (error) {
-      console.error('Error cancelling subscription:', error);
+      console.error('Error accessing customer portal:', error);
     }
   };
 

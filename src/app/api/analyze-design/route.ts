@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
-import { processMedia, validateMediaFile } from '@/lib/mediaProcessor';
+
+// Runtime configuration for Node.js environment (required for sharp, ffmpeg, file processing)
+export const runtime = 'nodejs';
+export const maxDuration = 120; // 120 seconds for Files API processing
+import { GoogleGenAI, createUserContent, createPartFromUri, HarmCategory, HarmBlockThreshold } from '@google/genai';
+import { processMedia, validateMediaFileSecure } from '@/lib/mediaProcessor';
 import { uploadFile, generateAndUploadThumbnail } from '@/lib/storage';
 import { createClient } from '@/lib/supabase/server';
+import { MEDIA_CONFIG } from '@/lib/config';
+import crypto from 'crypto';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Validate API key on startup
 
@@ -11,7 +18,7 @@ if (!process.env.GEMINI_API_KEY) {
 }
 
 const genAI = process.env.GEMINI_API_KEY 
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
   : null;
 
 // Simple in-memory rate limiting (for production, use Redis)
@@ -104,6 +111,262 @@ function checkRateLimit(ip: string): boolean {
   
   current.count++;
   return true;
+}
+
+// Files API integration functions
+interface FileMetadata {
+  uri: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  expirationTime: string;
+  userId: string;
+  fileHash: string;
+}
+
+async function uploadToFilesAPI(
+  buffer: Buffer, 
+  mimeType: string, 
+  filename: string
+): Promise<{ uri: string; name: string; expirationTime: string }> {
+  if (!genAI) {
+    throw new Error('Gemini API not initialized');
+  }
+
+  const blob = new Blob([buffer], { type: mimeType });
+  const file = await genAI.files.upload({
+    file: blob
+  });
+
+  return {
+    uri: file.uri || '',
+    name: file.name || filename,
+    expirationTime: file.expirationTime || ''
+  };
+}
+
+async function waitForFileActive(fileName: string, maxWaitTimeMs: number = 60000): Promise<boolean> {
+  if (!genAI) {
+    throw new Error('Gemini API not initialized');
+  }
+
+  const startTime = Date.now();
+  let attempt = 0;
+  const maxAttempts = 20;
+
+  while (Date.now() - startTime < maxWaitTimeMs && attempt < maxAttempts) {
+    try {
+      const file = await genAI.files.get({ name: fileName });
+      if (file.state === 'ACTIVE') {
+        return true;
+      }
+      
+      if (file.state === 'FAILED') {
+        throw new Error(`File processing failed: ${fileName}`);
+      }
+
+      // Exponential backoff: 1s, 2s, 4s, 8s, etc.
+      const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      attempt++;
+      
+    } catch (error) {
+      if (attempt >= maxAttempts - 1) {
+        throw error;
+      }
+      const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      attempt++;
+    }
+  }
+
+  throw new Error(`File did not become active within ${maxWaitTimeMs}ms: ${fileName}`);
+}
+
+async function checkFileCache(
+  fileHash: string, 
+  userId: string, 
+  supabase: SupabaseClient
+): Promise<FileMetadata | null> {
+  try {
+    const { data, error } = await supabase
+      .from('gemini_files')
+      .select('*')
+      .eq('file_hash', fileHash)
+      .eq('user_id', userId)
+      .gt('expiration_time', new Date().toISOString())
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    // Verify file still exists in Gemini
+    if (genAI) {
+      try {
+        await genAI.files.get({ name: data.name });
+        return {
+          uri: data.uri,
+          name: data.name,
+          mimeType: data.mime_type,
+          sizeBytes: data.size_bytes,
+          expirationTime: data.expiration_time,
+          userId: data.user_id,
+          fileHash: data.file_hash
+        };
+      } catch {
+        // File not found in Gemini, remove from cache
+        await supabase
+          .from('gemini_files')
+          .delete()
+          .eq('file_hash', fileHash)
+          .eq('user_id', userId);
+        return null;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Cache check failed:', error);
+    return null;
+  }
+}
+
+async function saveFileMetadata(
+  metadata: Omit<FileMetadata, 'userId'>,
+  userId: string,
+  supabase: SupabaseClient
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('gemini_files')
+      .upsert({
+        uri: metadata.uri,
+        name: metadata.name,
+        mime_type: metadata.mimeType,
+        size_bytes: metadata.sizeBytes,
+        expiration_time: metadata.expirationTime,
+        user_id: userId,
+        file_hash: metadata.fileHash,
+        created_at: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('Failed to save file metadata:', error);
+    }
+  } catch (error) {
+    console.error('Metadata save failed:', error);
+  }
+}
+
+function createFileHash(buffer: Buffer, mimeType: string): string {
+  return crypto.createHash('sha256')
+    .update(buffer)
+    .update(mimeType)
+    .digest('hex');
+}
+
+interface ModelConfig {
+  model: string;
+  generationConfig: {
+    candidateCount: number;
+    maxOutputTokens: number;
+    temperature: number;
+    responseMimeType: string;
+  };
+  safetySettings: Array<{
+    category: HarmCategory;
+    threshold: HarmBlockThreshold;
+  }>;
+}
+
+async function analyzeWithFilesAPI(
+  prompt: string,
+  fileUri: string,
+  fileMimeType: string,
+  modelConfig: ModelConfig
+): Promise<string> {
+  if (!genAI) {
+    throw new Error('Gemini API not initialized');
+  }
+
+  const result = await genAI.models.generateContent({
+    ...modelConfig,
+    contents: createUserContent([
+      prompt,
+      createPartFromUri(fileUri, fileMimeType)
+    ])
+  });
+
+  if (!result || !result.text) {
+    throw new Error('Invalid response from Gemini API');
+  }
+
+  return result.text;
+}
+
+async function analyzeWithOptimalMethod(
+  buffer: Buffer,
+  mimeType: string,
+  filename: string,
+  prompt: string,
+  modelConfig: ModelConfig,
+  userId: string,
+  supabase: SupabaseClient
+): Promise<string> {
+  const fileSize = buffer.length;
+  const shouldUseFilesAPI = fileSize > MEDIA_CONFIG.FILE_SIZE_LIMITS.GEMINI_INLINE_MAX;
+
+  if (shouldUseFilesAPI) {
+    // Check cache first
+    const fileHash = createFileHash(buffer, mimeType);
+    const cachedFile = await checkFileCache(fileHash, userId, supabase);
+
+    if (cachedFile) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Using cached file:', cachedFile.name);
+      }
+      return analyzeWithFilesAPI(prompt, cachedFile.uri, cachedFile.mimeType, modelConfig);
+    }
+
+    // Upload new file
+    const uploadResult = await uploadToFilesAPI(buffer, mimeType, filename);
+    
+    // Wait for file to become active
+    await waitForFileActive(uploadResult.name);
+
+    // Save metadata to cache
+    await saveFileMetadata({
+      uri: uploadResult.uri,
+      name: uploadResult.name,
+      mimeType: mimeType,
+      sizeBytes: fileSize,
+      expirationTime: uploadResult.expirationTime,
+      fileHash: fileHash
+    }, userId, supabase);
+
+    return analyzeWithFilesAPI(prompt, uploadResult.uri, mimeType, modelConfig);
+  } else {
+    // Use inline data for small files
+    const base64 = buffer.toString('base64');
+    const mediaPart = {
+      inlineData: {
+        data: base64,
+        mimeType: mimeType,
+      },
+    };
+
+    const result = await genAI!.models.generateContent({
+      ...modelConfig,
+      contents: createUserContent([prompt, mediaPart])
+    });
+
+    if (!result || !result.text) {
+      throw new Error('Invalid response from Gemini API');
+    }
+
+    return result.text;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -222,7 +485,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file using our media processor
-    const validation = validateMediaFile(file);
+    const validation = await validateMediaFileSecure(file);
     if (!validation.isValid) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
@@ -252,7 +515,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const base64 = processedMedia.buffer.toString('base64');
     
     if (process.env.NODE_ENV === 'development') {
       console.log('Media processed:', {
@@ -264,7 +526,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const model = genAI.getGenerativeModel({ 
+    // Model configuration for new SDK
+    const modelConfig = {
       model: 'gemini-2.5-flash',
       generationConfig: {
         candidateCount: 1,
@@ -290,11 +553,9 @@ export async function POST(request: NextRequest) {
           threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
         },
       ],
-    });
+    };
 
     const isVideo = file.type.startsWith('video/');
-    
-    // Language names for output instruction
     
     // Get language name in the target language for stronger instruction
     const outputLanguage = language === 'ja' ? '日本語' : 
@@ -305,16 +566,16 @@ export async function POST(request: NextRequest) {
     // Get appropriate prompt based on media type
     const prompt = isVideo ? getVideoAnalysisPrompt(outputLanguage) : getImageAnalysisPrompt(outputLanguage);
 
-    const mediaPart = {
-      inlineData: {
-        data: base64,
-        mimeType: processedMedia.mimeType,
-      },
-    };
-
-    const result = await model.generateContent([prompt, mediaPart]);
-    const response = result.response;
-    const text = response.text();
+    // Use optimal method (Files API for large files, inline for small files)
+    const text = await analyzeWithOptimalMethod(
+      processedMedia.buffer,
+      processedMedia.mimeType,
+      file.name,
+      prompt,
+      modelConfig,
+      user.id,
+      supabase
+    );
 
     // Debug: Log actual API response for video analysis
     if (isVideo && process.env.NODE_ENV === 'development') {
@@ -488,6 +749,25 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'Rate limit exceeded. Please try again in a moment.' }, 
           { status: 429 }
+        );
+      }
+      // Files API specific errors
+      if (error.message.includes('File processing failed') || error.message.includes('did not become active')) {
+        return NextResponse.json(
+          { error: 'Large file processing is taking longer than expected. Please try with a smaller file or try again later.' }, 
+          { status: 408 }
+        );
+      }
+      if (error.message.includes('File size exceeds') || error.message.includes('too large')) {
+        return NextResponse.json(
+          { error: 'File is too large. Please use a smaller file or compress your media.' }, 
+          { status: 413 }
+        );
+      }
+      if (error.message.includes('File not found') || error.message.includes('404')) {
+        return NextResponse.json(
+          { error: 'File processing error. Please upload the file again.' }, 
+          { status: 400 }
         );
       }
     }

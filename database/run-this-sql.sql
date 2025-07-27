@@ -2,6 +2,7 @@
 -- SNAP2SPEC 課金システム統合 - 安全版スキーマ
 -- =====================================================
 -- 段階的実行用：エラー回避を優先した設計
+-- Files API キャッシュ機能を追加
 -- =====================================================
 
 -- =====================================================
@@ -161,11 +162,25 @@ BEGIN
                  WHERE table_name = 'user_usage' AND column_name = 'billing_address') THEN
     ALTER TABLE user_usage ADD COLUMN billing_address JSONB DEFAULT '{}';
   END IF;
+
+  -- polar_customer_id カラム
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_usage' AND column_name = 'polar_customer_id') THEN
+    ALTER TABLE user_usage ADD COLUMN polar_customer_id TEXT;
+  END IF;
+
+  -- polar_subscription_id カラム
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_usage' AND column_name = 'polar_subscription_id') THEN
+    ALTER TABLE user_usage ADD COLUMN polar_subscription_id TEXT;
+  END IF;
 END $$;
 
 -- インデックス追加
 CREATE INDEX IF NOT EXISTS idx_user_usage_plan_id ON user_usage(plan_id);
 CREATE INDEX IF NOT EXISTS idx_user_usage_subscription_id ON user_usage(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_user_usage_polar_customer_id ON user_usage(polar_customer_id);
+CREATE INDEX IF NOT EXISTS idx_user_usage_polar_subscription_id ON user_usage(polar_subscription_id);
 
 -- =====================================================
 -- 6. 初期データ挿入
@@ -212,7 +227,51 @@ CREATE POLICY "thumbnails_user_policy" ON storage.objects
   FOR ALL USING (bucket_id = 'thumbnails' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 -- =====================================================
--- 8. 完了メッセージ
+-- 8. Gemini Files API キャッシュテーブル
 -- =====================================================
 
-SELECT 'SNAP2SPEC 課金システム基盤の作成が完了しました。' as message;
+CREATE TABLE IF NOT EXISTS gemini_files (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  uri TEXT NOT NULL,
+  name TEXT NOT NULL UNIQUE,
+  mime_type TEXT NOT NULL,
+  size_bytes BIGINT NOT NULL,
+  expiration_time TIMESTAMP WITH TIME ZONE NOT NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  file_hash TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- インデックス追加
+CREATE INDEX IF NOT EXISTS idx_gemini_files_user_id ON gemini_files(user_id);
+CREATE INDEX IF NOT EXISTS idx_gemini_files_file_hash ON gemini_files(file_hash);
+CREATE INDEX IF NOT EXISTS idx_gemini_files_expiration ON gemini_files(expiration_time);
+CREATE INDEX IF NOT EXISTS idx_gemini_files_user_hash ON gemini_files(user_id, file_hash);
+
+-- RLS有効化
+ALTER TABLE gemini_files ENABLE ROW LEVEL SECURITY;
+
+-- RLSポリシー
+DROP POLICY IF EXISTS "gemini_files_user_policy" ON gemini_files;
+CREATE POLICY "gemini_files_user_policy" ON gemini_files
+  FOR ALL USING (auth.uid() = user_id);
+
+-- 期限切れファイル自動削除のためのトリガー関数
+CREATE OR REPLACE FUNCTION delete_expired_gemini_files()
+RETURNS void AS $$
+BEGIN
+  DELETE FROM gemini_files 
+  WHERE expiration_time < NOW();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 期限切れファイル削除の定期実行（手動実行用）
+-- Supabaseの場合、pg_cronを利用可能な場合に使用
+-- SELECT cron.schedule('delete-expired-gemini-files', '0 */6 * * *', 'SELECT delete_expired_gemini_files();');
+
+-- =====================================================
+-- 9. 完了メッセージ
+-- =====================================================
+
+SELECT 'SNAP2SPEC 課金システム基盤とFiles APIキャッシュの作成が完了しました。' as message;

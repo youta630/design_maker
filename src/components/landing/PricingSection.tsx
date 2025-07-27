@@ -79,7 +79,7 @@ export default function PricingSection({ currentSection }: PricingSectionProps) 
             )}
             <GoogleAuthButton 
               className="px-6 py-3 bg-black text-white text-sm font-bold hover:bg-gray-800 w-full rounded-lg transition-all duration-200"
-              redirectTo="/app"
+              redirectTo="/app/subscribe"
             >
               このプランを選択
             </GoogleAuthButton>

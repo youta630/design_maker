@@ -6,6 +6,8 @@ import { promises as fs } from 'fs';
 import { existsSync } from 'fs';
 import path from 'path';
 import os from 'os';
+import { fileTypeFromBuffer } from 'file-type';
+import { MEDIA_CONFIG, isImageMimeType, isVideoMimeType, requiresConversion } from './config';
 
 // Set FFmpeg and FFprobe paths with absolute path resolution
 if (ffmpegStatic) {
@@ -141,7 +143,7 @@ export async function processImage(buffer: Buffer, originalMimeType: string): Pr
  * - Resize to 1080p max for efficiency
  * - Optimize for content recognition
  */
-export async function processVideo(buffer: Buffer, _originalMimeType: string): Promise<ProcessedMedia> {
+export async function processVideo(buffer: Buffer, originalMimeType: string): Promise<ProcessedMedia> {
   const tempDir = os.tmpdir();
   const inputPath = path.join(tempDir, `input_${Date.now()}.tmp`);
   const outputPath = path.join(tempDir, `output_${Date.now()}.mp4`);
@@ -240,7 +242,8 @@ export async function processVideo(buffer: Buffer, _originalMimeType: string): P
               });
             });
             
-          } catch (_error) {
+          } catch (readError) {
+            console.error('Failed to read processed video:', readError);
             reject(new Error('Failed to read processed video'));
           }
         })
@@ -291,33 +294,105 @@ export async function processMedia(buffer: Buffer, mimeType: string): Promise<Pr
 }
 
 /**
- * Validate file size and type before processing
+ * Enhanced validation result interface
+ */
+interface ValidationResult {
+  isValid: boolean;
+  error?: string;
+  detectedMime?: string;
+  requiresConversion?: boolean;
+}
+
+/**
+ * Validate file with magic number detection and enhanced security
+ */
+export async function validateMediaFileSecure(file: File): Promise<ValidationResult> {
+  try {
+    // Read file header for magic number detection
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const detected = await fileTypeFromBuffer(buffer.subarray(0, 4100));
+    
+    // Handle empty MIME type (common with some browsers/extensions)
+    const declaredMime = file.type || 'application/octet-stream';
+    const actualMime = detected?.mime || declaredMime;
+    
+    // Security check: Detect MIME type spoofing
+    if (detected && detected.mime !== declaredMime && declaredMime !== 'application/octet-stream') {
+      return {
+        isValid: false,
+        error: `File type mismatch: declared ${declaredMime}, detected ${detected.mime}`,
+        detectedMime: detected.mime
+      };
+    }
+    
+    // Check if format is supported
+    const isImage = isImageMimeType(actualMime);
+    const isVideo = isVideoMimeType(actualMime);
+    
+    if (!isImage && !isVideo) {
+      // Check if it's an unsupported video format
+      const isUnsupportedVideo = MEDIA_CONFIG.SUPPORTED_FORMATS.VIDEOS.UNSUPPORTED.includes(actualMime as typeof MEDIA_CONFIG.SUPPORTED_FORMATS.VIDEOS.UNSUPPORTED[number]);
+      if (isUnsupportedVideo) {
+        return {
+          isValid: false,
+          error: 'Video format not supported. Please convert to MP4, WebM, or MOV format.',
+          detectedMime: actualMime
+        };
+      }
+      
+      return {
+        isValid: false,
+        error: 'Unsupported file type. Please upload PNG, JPEG, WebP, GIF, SVG, MP4, WebM, or MOV files.',
+        detectedMime: actualMime
+      };
+    }
+    
+    // File size validation
+    if (isImage && file.size > MEDIA_CONFIG.FILE_SIZE_LIMITS.IMAGE_MAX) {
+      return {
+        isValid: false,
+        error: 'Image too large. Please use an image smaller than 10MB.',
+        detectedMime: actualMime
+      };
+    }
+    
+    if (isVideo && file.size > MEDIA_CONFIG.FILE_SIZE_LIMITS.VIDEO_MAX) {
+      return {
+        isValid: false,
+        error: 'Video too large. Please use a video smaller than 50MB.',
+        detectedMime: actualMime
+      };
+    }
+    
+    return {
+      isValid: true,
+      detectedMime: actualMime,
+      requiresConversion: requiresConversion(actualMime)
+    };
+    
+  } catch (error) {
+    console.error('File validation error:', error);
+    return {
+      isValid: false,
+      error: 'Failed to validate file. Please try again.',
+    };
+  }
+}
+
+/**
+ * Legacy validation function for backward compatibility
+ * @deprecated Use validateMediaFileSecure instead
  */
 export function validateMediaFile(file: File): { isValid: boolean; error?: string } {
-  // File size limits
-  const maxImageSize = 10 * 1024 * 1024; // 10MB for images
-  const maxVideoSize = 50 * 1024 * 1024; // 50MB for videos
-  
-  // Supported formats
-  const supportedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-  const supportedVideoTypes = ['video/mp4', 'video/mov', 'video/webm', 'video/wmv', 'video/avi', 'video/x-msvideo', 'video/quicktime'];
-  
+  // Simple validation for existing code compatibility
   if (file.type.startsWith('image/')) {
-    if (!supportedImageTypes.includes(file.type)) {
-      return { isValid: false, error: 'Unsupported image format. Please use JPEG, PNG, WebP, or GIF.' };
-    }
-    if (file.size > maxImageSize) {
+    if (file.size > MEDIA_CONFIG.FILE_SIZE_LIMITS.IMAGE_MAX) {
       return { isValid: false, error: 'Image too large. Please use an image smaller than 10MB.' };
     }
   } else if (file.type.startsWith('video/')) {
-    if (!supportedVideoTypes.includes(file.type)) {
-      return { isValid: false, error: 'Unsupported video format. Please use MP4, MOV, WebM, WMV, or AVI.' };
-    }
-    if (file.size > maxVideoSize) {
+    if (file.size > MEDIA_CONFIG.FILE_SIZE_LIMITS.VIDEO_MAX) {
       return { isValid: false, error: 'Video too large. Please use a video smaller than 50MB.' };
     }
-  } else {
-    return { isValid: false, error: 'Unsupported file type. Please upload an image or video.' };
   }
   
   return { isValid: true };

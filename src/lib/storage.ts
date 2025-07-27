@@ -373,7 +373,7 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
     ...SUPPORTED_MIME_TYPES.VIDEO
   ];
 
-  if (!allSupportedTypes.includes(file.type as any)) {
+  if (!allSupportedTypes.includes(file.type as typeof allSupportedTypes[number])) {
     return { 
       valid: false, 
       error: `Unsupported file type: ${file.type}. Supported types: ${allSupportedTypes.join(', ')}` 
@@ -396,7 +396,7 @@ export async function getBucketInfo(bucket: string) {
 
     // 許可されたバケット名のみアクセス可能
     const allowedBuckets = Object.values(STORAGE_BUCKETS);
-    if (!allowedBuckets.includes(bucket as any)) {
+    if (!allowedBuckets.includes(bucket as typeof allowedBuckets[number])) {
       if (process.env.NODE_ENV === 'development') {
         console.warn('⚠️ Unauthorized bucket access attempt:', bucket);
       }
