@@ -165,17 +165,23 @@ export default function SubscribePage() {
         return;
       }
 
-      // Create Polar checkout URL
-      const productId = planType === 'monthly' ? 'xxxx' : 'xxxx'; // TODO: Replace with actual Product IDs from Polar dashboard
+      // Create Stripe checkout
       const checkoutUrl = new URL('/api/checkout', window.location.origin);
+      checkoutUrl.searchParams.set('plan', planType);
+      checkoutUrl.searchParams.set('user_id', user.id);
       
-      checkoutUrl.searchParams.set('products', productId);
-      checkoutUrl.searchParams.set('customerExternalId', user.id);
-      checkoutUrl.searchParams.set('customerEmail', user.email || '');
-      checkoutUrl.searchParams.set('successUrl', `${window.location.origin}/app?upgraded=1`);
+      const response = await fetch(checkoutUrl.toString());
+      const data = await response.json();
       
-      // Redirect to Polar checkout
-      window.location.href = checkoutUrl.toString();
+      if (data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
+      } else if (data.redirect) {
+        // Handle existing subscription case
+        window.location.href = data.redirect;
+      } else {
+        console.error('Checkout failed:', data.error);
+      }
       
     } catch (error) {
       console.error('Checkout initiation failed:', error);
@@ -197,9 +203,15 @@ export default function SubscribePage() {
         return;
       }
 
-      // Redirect to Polar Customer Portal for subscription management
-      const portalUrl = `/api/portal`;
-      window.location.href = portalUrl;
+      // Redirect to Stripe Customer Portal for subscription management
+      const response = await fetch('/api/portal?return=cancel');
+      const data = await response.json();
+      
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error('Portal access failed:', data.error);
+      }
       
     } catch (error) {
       console.error('Error accessing customer portal:', error);

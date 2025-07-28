@@ -17,110 +17,9 @@ export const SUPPORTED_MIME_TYPES = {
  * セキュアなファイルアップロード関数
  * 本番環境対応：認証・検証・エラーハンドリング強化
  */
-export async function uploadFile(
-  file: File, 
-  userId: string,
-  bucket: string = STORAGE_BUCKETS.DESIGN_FILES
-): Promise<{ path: string; publicUrl: string; error?: string }> {
-  try {
-    // セキュリティ検証: ユーザーID必須
-    if (!userId || typeof userId !== 'string') {
-      return { path: '', publicUrl: '', error: 'Invalid user ID' };
-    }
-
-    // ファイル検証
-    const validation = validateFile(file);
-    if (!validation.valid) {
-      return { path: '', publicUrl: '', error: validation.error };
-    }
-
-    // サーバーサイドSupabaseクライアント初期化
-    const supabase = await createClient();
-
-    // セキュアなファイル名生成（特殊文字除去・長さ制限）
-    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-    const timestamp = Date.now();
-    const baseName = file.name
-      .replace(/\.[^/.]+$/, '') // 拡張子を除去
-      .replace(/[^a-zA-Z0-9_-]/g, '_') // 特殊文字を_に置換
-      .substring(0, 50); // 長さ制限
-    
-    const filePath = `${userId}/${timestamp}_${baseName}.${fileExtension}`;
-
-    // 開発環境でのみデバッグログ
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🗂️ Uploading file:', {
-        originalName: file.name,
-        sanitizedPath: filePath,
-        size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-        type: file.type
-      });
-    }
-
-    // ファイルをSupabase Storageにアップロード
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false, // 重複防止
-        contentType: file.type, // 明示的にMIMEタイプ設定
-      });
-
-    if (error) {
-      // 詳細なエラーログ（本番では簡略化）
-      if (process.env.NODE_ENV === 'development') {
-        console.error('❌ Storage upload error:', error);
-      }
-      return { 
-        path: '', 
-        publicUrl: '', 
-        error: `Upload failed: ${error.message}` 
-      };
-    }
-
-    // 公開URLを取得
-    const { data: publicUrlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(filePath);
-
-    // 成功ログ
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ File uploaded successfully:', {
-        path: data.path,
-        publicUrl: publicUrlData.publicUrl
-      });
-    }
-
-    return {
-      path: data.path,
-      publicUrl: publicUrlData.publicUrl
-    };
-
-  } catch (error) {
-    // 構造化エラーログ
-    const errorLog = {
-      function: 'uploadFile',
-      userId,
-      fileName: file?.name,
-      fileSize: file?.size,
-      bucket,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    };
-    
-    console.error('💥 Upload function error:', errorLog);
-    
-    return { 
-      path: '', 
-      publicUrl: '', 
-      error: error instanceof Error ? error.message : 'File upload failed' 
-    };
-  }
-}
-
 /**
- * セキュアな動画サムネイル生成・アップロード関数
- * 本番環境対応：バッファ検証・エラーハンドリング強化
+ * 動画サムネイル生成・アップロード関数
+ * 動画ファイルからサムネイルを生成してストレージに保存
  */
 export async function generateAndUploadThumbnail(
   videoBuffer: Buffer,
@@ -135,12 +34,6 @@ export async function generateAndUploadThumbnail(
 
     if (!videoBuffer || videoBuffer.length === 0) {
       return { path: '', publicUrl: '', error: 'Invalid video buffer' };
-    }
-
-    // バッファサイズ制限（5MB）
-    const maxThumbnailSize = 5 * 1024 * 1024;
-    if (videoBuffer.length > maxThumbnailSize) {
-      return { path: '', publicUrl: '', error: 'Video buffer too large for thumbnail generation' };
     }
 
     // サーバーサイドSupabaseクライアント初期化
@@ -180,9 +73,9 @@ export async function generateAndUploadThumbnail(
     })
     .toBuffer();
 
-    // サムネイルをアップロード
+    // サムネイルをアップロード（design-filesバケットに保存）
     const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKETS.THUMBNAILS)
+      .from(STORAGE_BUCKETS.DESIGN_FILES)
       .upload(thumbnailPath, placeholderThumbnail, {
         contentType: 'image/jpeg',
         cacheControl: '3600',
@@ -202,7 +95,7 @@ export async function generateAndUploadThumbnail(
 
     // 公開URLを取得
     const { data: publicUrlData } = supabase.storage
-      .from(STORAGE_BUCKETS.THUMBNAILS)
+      .from(STORAGE_BUCKETS.DESIGN_FILES)
       .getPublicUrl(thumbnailPath);
 
     if (process.env.NODE_ENV === 'development') {
@@ -237,6 +130,121 @@ export async function generateAndUploadThumbnail(
     };
   }
 }
+
+/**
+ * ファイルアップロード関数（画像は直接、動画はサムネイルのみ保存）
+ */
+export async function uploadFile(
+  file: File, 
+  userId: string,
+  bucket: string = STORAGE_BUCKETS.DESIGN_FILES
+): Promise<{ path: string; publicUrl: string; error?: string }> {
+  try {
+    // セキュリティ検証: ユーザーID必須
+    if (!userId || typeof userId !== 'string') {
+      return { path: '', publicUrl: '', error: 'Invalid user ID' };
+    }
+
+    // ファイル検証
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      return { path: '', publicUrl: '', error: validation.error };
+    }
+
+    // 動画ファイルの場合はサムネイルを生成してアップロード
+    if (file.type.startsWith('video/')) {
+      // 動画をBufferに変換
+      const arrayBuffer = await file.arrayBuffer();
+      const videoBuffer = Buffer.from(arrayBuffer);
+      
+      // サムネイル生成・アップロード
+      return await generateAndUploadThumbnail(videoBuffer, userId, file.name);
+    }
+
+    // 画像ファイルの場合は通常通りアップロード
+    const supabase = await createClient();
+
+    // セキュアなファイル名生成（特殊文字除去・長さ制限）
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+    const timestamp = Date.now();
+    const baseName = file.name
+      .replace(/\.[^/.]+$/, '') // 拡張子を除去
+      .replace(/[^a-zA-Z0-9_-]/g, '_') // 特殊文字を_に置換
+      .substring(0, 50); // 長さ制限
+    
+    const filePath = `${userId}/${timestamp}_${baseName}.${fileExtension}`;
+
+    // 開発環境でのみデバッグログ
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🗂️ Uploading image file:', {
+        originalName: file.name,
+        sanitizedPath: filePath,
+        size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        type: file.type
+      });
+    }
+
+    // ファイルをSupabase Storageにアップロード
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false, // 重複防止
+        contentType: file.type, // 明示的にMIMEタイプ設定
+      });
+
+    if (error) {
+      // 詳細なエラーログ（本番では簡略化）
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Storage upload error:', error);
+      }
+      return { 
+        path: '', 
+        publicUrl: '', 
+        error: `Upload failed: ${error.message}` 
+      };
+    }
+
+    // 公開URLを取得
+    const { data: publicUrlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    // 成功ログ
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Image file uploaded successfully:', {
+        path: data.path,
+        publicUrl: publicUrlData.publicUrl
+      });
+    }
+
+    return {
+      path: data.path,
+      publicUrl: publicUrlData.publicUrl
+    };
+
+  } catch (error) {
+    // 構造化エラーログ
+    const errorLog = {
+      function: 'uploadFile',
+      userId,
+      fileName: file?.name,
+      fileSize: file?.size,
+      bucket,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    };
+    
+    console.error('💥 Upload function error:', errorLog);
+    
+    return { 
+      path: '', 
+      publicUrl: '', 
+      error: error instanceof Error ? error.message : 'File upload failed' 
+    };
+  }
+}
+
 
 /**
  * セキュアなファイル削除関数

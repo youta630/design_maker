@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import HistoryCard from '@/components/HistoryCard';
 import SpecificationDisplay from '@/components/SpecificationDisplay';
+import { supabase } from '@/lib/supabase/client';
 
 interface HistoryItem {
   id: string;
@@ -13,6 +14,7 @@ interface HistoryItem {
   specification: string;
   createdAt: string;
   thumbnail?: string;
+  fileUrl?: string;
 }
 
 export default function HistoryPage() {
@@ -21,50 +23,77 @@ export default function HistoryPage() {
   const [selectedItem, setSelectedItem] = useState<HistoryItem | null>(null);
 
   useEffect(() => {
-    // TODO: Fetch history from API or local storage
-    // For now, using mock data
-    const mockHistory: HistoryItem[] = [
-      {
-        id: '1',
-        fileName: 'login-form.png',
-        fileSize: 245760,
-        mimeType: 'image/png',
-        specification: '# Login Form Specification\n\n## Overview\nA clean login form with email and password fields...',
-        createdAt: '2024-01-20T10:30:00Z',
-        thumbnail: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9Ijk2IiB2aWV3Qm94PSIwIDAgMTI4IDk2IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjRjNGNEY2Ii8+CjxyZWN0IHg9IjE2IiB5PSIyNCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRTVFN0VCIiByeD0iNCIvPgo8L3N2Zz4K'
-      },
-      {
-        id: '2',
-        fileName: 'dashboard.jpg',
-        fileSize: 1048576,
-        mimeType: 'image/jpeg',
-        specification: '# Dashboard Specification\n\n## Overview\nA modern dashboard with charts and statistics...',
-        createdAt: '2024-01-19T15:45:00Z'
-      },
-      {
-        id: '3',
-        fileName: 'app-demo.mp4',
-        fileSize: 5242880,
-        mimeType: 'video/mp4',
-        specification: '# App Demo Animation Specification\n\n## Motion Analysis\nThe video shows smooth transitions and animations...',
-        createdAt: '2024-01-18T09:15:00Z'
-      }
-    ];
-    
-    setTimeout(() => {
-      setHistory(mockHistory);
-      setLoading(false);
-    }, 500);
+    loadHistory();
   }, []);
+
+  const loadHistory = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('No authentication token');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/history', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to load history:', errorData.error);
+        setLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+      setHistory(data.history || []);
+      
+    } catch (error) {
+      console.error('Error loading history:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleViewItem = (item: HistoryItem) => {
     setSelectedItem(item);
   };
 
-  const handleDeleteItem = (id: string) => {
-    setHistory(prev => prev.filter(item => item.id !== id));
-    if (selectedItem && selectedItem.id === id) {
-      setSelectedItem(null);
+  const handleDeleteItem = async (id: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.error('No authentication token');
+        return;
+      }
+
+      const response = await fetch('/api/history', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to delete history item:', errorData.error);
+        return;
+      }
+
+      // UIから削除
+      setHistory(prev => prev.filter(item => item.id !== id));
+      if (selectedItem && selectedItem.id === id) {
+        setSelectedItem(null);
+      }
+      
+    } catch (error) {
+      console.error('Error deleting history item:', error);
     }
   };
 

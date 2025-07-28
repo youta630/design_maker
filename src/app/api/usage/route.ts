@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 export const runtime = 'nodejs';
 
 /**
- * セキュアな使用量取得API
- * フロントエンドからの直接DB操作を防ぐために作成
+ * セキュアな月次使用量取得API
+ * 月50回制限での使用量管理
  */
 export async function GET(request: NextRequest) {
   try {
@@ -30,10 +30,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 使用量データを取得（必要最小限のデータのみ）
+    // 月次使用量データを取得（月次リセット処理含む）
     const { data: userUsage, error: usageError } = await supabase
       .from('user_usage')
-      .select('usage_count, monthly_limit, subscription_status')
+      .select('usage_count, monthly_limit, last_reset_date')
       .eq('user_id', user.id)
       .single();
 
@@ -45,10 +45,9 @@ export async function GET(request: NextRequest) {
           .insert({
             user_id: user.id,
             usage_count: 0,
-            monthly_limit: 7,
-            subscription_status: 'free'
+            monthly_limit: 50
           })
-          .select('usage_count, monthly_limit, subscription_status')
+          .select('usage_count, monthly_limit')
           .single();
 
         if (createError) {
@@ -60,9 +59,8 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json({
-          usageCount: newUsage.usage_count,
-          monthlyLimit: newUsage.monthly_limit,
-          subscriptionStatus: newUsage.subscription_status
+          usageCount: newUsage.usage_count || 0,
+          monthlyLimit: newUsage.monthly_limit || 50
         });
       }
 
@@ -73,11 +71,42 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // セキュアなレスポンス（最小限のデータのみ）
+    // 月次リセットチェック：現在月の開始日よりも古い場合はリセット
+    const currentMonthStart = new Date();
+    currentMonthStart.setDate(1);
+    currentMonthStart.setHours(0, 0, 0, 0);
+    
+    const lastResetDate = new Date(userUsage.last_reset_date);
+    
+    let finalUsageCount = userUsage.usage_count || 0;
+    
+    if (lastResetDate < currentMonthStart) {
+      // 使用量をリセット
+      const { data: resetData, error: resetError } = await supabase
+        .from('user_usage')
+        .update({ 
+          usage_count: 0,
+          last_reset_date: currentMonthStart.toISOString().split('T')[0], // YYYY-MM-DD format
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .select('usage_count')
+        .single();
+
+      if (resetError) {
+        console.error('Failed to reset monthly usage:', resetError);
+        // リセットに失敗しても現在のデータを返す
+      } else {
+        finalUsageCount = resetData.usage_count || 0;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Monthly usage reset completed for user:', user.id);
+        }
+      }
+    }
+
     return NextResponse.json({
-      usageCount: userUsage.usage_count,
-      monthlyLimit: userUsage.monthly_limit,
-      subscriptionStatus: userUsage.subscription_status
+      usageCount: finalUsageCount,
+      monthlyLimit: userUsage.monthly_limit || 50
     });
 
   } catch (error) {
@@ -90,7 +119,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * 使用量更新API（analyze-design から呼び出される内部API）
+ * 月次使用量更新API（analyze-design から呼び出される内部API）
  */
 export async function PATCH(request: NextRequest) {
   try {
@@ -114,10 +143,10 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // 現在の使用量を取得してから更新
+    // 現在の月次使用量を取得（リセット処理含む）
     const { data: currentUsage, error: fetchError } = await supabase
       .from('user_usage')
-      .select('usage_count, monthly_limit')
+      .select('usage_count, monthly_limit, last_reset_date')
       .eq('user_id', user.id)
       .single();
 
@@ -129,12 +158,30 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // 使用量を1増加
+    // 月次リセットチェック：使用量増加前にリセットが必要か確認
+    const currentMonthStart = new Date();
+    currentMonthStart.setDate(1);
+    currentMonthStart.setHours(0, 0, 0, 0);
+    
+    const lastResetDate = new Date(currentUsage.last_reset_date);
+    let baseUsageCount = currentUsage.usage_count || 0;
+    
+    if (lastResetDate < currentMonthStart) {
+      // リセットが必要な場合は0から開始
+      baseUsageCount = 0;
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Resetting usage count for new month for user:', user.id);
+      }
+    }
+
+    // 使用量を1増加（リセット同時処理）
     const { data, error: updateError } = await supabase
       .from('user_usage')
       .update({ 
-        usage_count: currentUsage.usage_count + 1,
-        last_used_at: new Date().toISOString()
+        usage_count: baseUsageCount + 1,
+        last_used_at: new Date().toISOString(),
+        last_reset_date: lastResetDate < currentMonthStart ? currentMonthStart.toISOString().split('T')[0] : currentUsage.last_reset_date,
+        updated_at: new Date().toISOString()
       })
       .eq('user_id', user.id)
       .select('usage_count, monthly_limit')

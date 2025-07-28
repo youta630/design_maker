@@ -49,7 +49,7 @@ export default function LandingPage() {
     offset: ["start start", "end end"]
   });
 
-  const totalSections = 6;
+  const totalSections = 5;
   
   const sectionProgress = useTransform(
     scrollYProgress,
@@ -127,30 +127,6 @@ console.log(spec.markdown);
     },
     {
       id: 4,
-      title: "PRICING",
-      subtitle: "FLEXIBLE PLANS",
-      description: "Choose the plan that fits your needs",
-      pricing: {
-        free: "First 7 analyses FREE",
-        monthly: "$7.99/month - Unlimited",
-        yearly: "$79.99/year - 17% off"
-      },
-      code: `// Pricing made simple
-const plans = {
-  free: {
-    analyses: 7,
-    price: 0,
-    features: ['Basic AI analysis', 'Markdown output']
-  },
-  pro: {
-    analyses: 'unlimited',
-    price: 1000,
-    features: ['All AI models', 'Priority support']
-  }
-};`
-    },
-    {
-      id: 5,
       title: "READY",
       subtitle: "START NOW",
       description: "Speed up your development workflow",
@@ -163,7 +139,7 @@ const plans = {
   return (
     <main ref={containerRef} className="relative">
       {/* START NOW button - shows only on READY section */}
-      {currentSection === 5 && (
+      {currentSection === 4 && (
         <div style={{ position: 'fixed', bottom: '120px', left: '50%', transform: 'translateX(-50%)', zIndex: 99999 }}>
           <GoogleAuthButton 
             className="px-16 py-6 bg-white text-black text-xl font-bold hover:bg-gray-100 shadow-2xl border border-gray-300"
@@ -179,7 +155,7 @@ const plans = {
         <GoogleAuthButton 
           redirectTo="/app" 
           className={`px-6 py-3 text-sm ${
-            currentSection === 5 
+            currentSection === 4 
               ? 'bg-white border-2 border-white text-black hover:bg-gray-100' 
               : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
           }`}
@@ -192,7 +168,7 @@ const plans = {
         style={{
           background: currentSection === 0 
             ? 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%)'
-            : currentSection === 5
+            : currentSection === 4
             ? 'linear-gradient(135deg, #000000 0%, #111111 50%, #000000 100%)'
             : 'linear-gradient(135deg, #ffffff 0%, #000000 100%)'
         }}
@@ -417,168 +393,9 @@ const plans = {
             </div>
           )}
 
-          {/* Pricing section - storytelling format */}
-          {currentSection === 4 && (
-            <div className="grid grid-cols-2 gap-20 items-center h-full">
-              
-              {/* Left: Title Area */}
-              <div className="space-y-6 flex-1">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={`pricing-title-${currentSection}`}
-                    initial={{ opacity: 0, x: -50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                    transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                    className="space-y-4"
-                  >
-                    <motion.div 
-                      className="text-sm font-bold text-gray-500 tracking-[0.3em]"
-                    >
-                      [ 05 / 06 ]
-                    </motion.div>
-
-                    <div className="flex items-center space-x-4">
-                      <svg width="64" height="64" viewBox="0 0 32 32" fill="none" className="flex-shrink-0">
-                        <defs>
-                          <linearGradient id="clarityPricing" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#000" stopOpacity="0.15"/>
-                            <stop offset="30%" stopColor="#000" stopOpacity="0.4"/>
-                            <stop offset="70%" stopColor="#000" stopOpacity="0.8"/>
-                            <stop offset="100%" stopColor="#000" stopOpacity="1"/>
-                          </linearGradient>
-                        </defs>
-                        <path d="M6 16L16 6L26 16L16 26L6 16z" stroke="url(#clarityPricing)" strokeWidth="2" fill="none"/>
-                        <path d="M6 16h20M16 6v20" stroke="url(#clarityPricing)" strokeWidth="1"/>
-                        <circle cx="16" cy="16" r="2" fill="#000"/>
-                      </svg>
-                      <motion.h1 
-                        className="text-6xl md:text-7xl font-black text-black leading-none tracking-tight"
-                      >
-                        PRICING
-                      </motion.h1>
-                    </div>
-
-                    <motion.h2 
-                      className="text-2xl md:text-3xl font-bold text-gray-600 tracking-tight"
-                    >
-                      FLEXIBLE PLANS
-                    </motion.h2>
-
-                    <motion.p 
-                      className="text-lg font-medium text-gray-700 leading-relaxed"
-                    >
-                      Choose the plan that fits your needs
-                    </motion.p>
-
-                    {/* Free Trial Info */}
-                    <div className="pt-8 space-y-3">
-                      <p className="text-3xl font-black text-emerald-500 tracking-tight uppercase">
-                        FREE TRIAL
-                      </p>
-                      <p className="text-xl font-bold text-black">
-                        {currentStory?.pricing?.free || "First 7 analyses FREE"}
-                      </p>
-                    </div>
-
-                    {/* Pricing Cards */}
-                    <div className="grid grid-cols-1 gap-4 pt-6">
-                      <div className="p-6 bg-white border-2 border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                        <div className="space-y-3">
-                          <p className="text-lg font-bold text-black uppercase tracking-wide">
-                            MONTHLY
-                          </p>
-                          <p className="text-3xl font-black text-black">
-                            {currentStory?.pricing?.monthly || "$7.99/month - Unlimited"}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Unlimited analyses • All AI models • Priority support
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="p-6 bg-white border-2 border-black rounded-lg shadow-lg hover:shadow-xl transition-shadow relative">
-                        <div className="absolute -top-2 -right-2 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                          BEST VALUE
-                        </div>
-                        <div className="space-y-3">
-                          <p className="text-lg font-bold text-emerald-500 uppercase tracking-wide">
-                            YEARLY
-                          </p>
-                          <p className="text-3xl font-black text-black">
-                            {currentStory?.pricing?.yearly || "$79.99/year - 17% off"}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Everything in Monthly • 17% savings • 2 months free
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <motion.div 
-                      className="w-full h-1 bg-gray-200 rounded-full overflow-hidden"
-                    >
-                      <motion.div 
-                        className="h-full bg-black rounded-full"
-                        style={{ 
-                          scaleX: progressBarTransform,
-                          originX: 0
-                        }}
-                      />
-                    </motion.div>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-
-              {/* Right: Code Editor Area */}
-              <div className="relative">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                      key={`pricing-code-${currentSection}`}
-                      initial={{ opacity: 0, x: 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 50 }}
-                      transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                      className="relative"
-                    >
-                      {/* Code Editor */}
-                      <div className="bg-white border-2 border-black shadow-2xl overflow-hidden">
-                        {/* Title bar */}
-                        <div className="flex items-center justify-between px-6 py-4 bg-gray-100 border-b-2 border-black">
-                          <div className="flex space-x-3">
-                            <div className="w-3 h-3 bg-black rounded-full"></div>
-                            <div className="w-3 h-3 bg-black rounded-full"></div>
-                            <div className="w-3 h-3 bg-black rounded-full"></div>
-                          </div>
-                          <div className="text-sm font-bold text-black">
-                            pricing-config.js
-                          </div>
-                        </div>
-                        
-                        {/* Code area */}
-                        <div className="p-8 font-mono text-sm bg-black text-white">
-                          <motion.pre 
-                            className="leading-relaxed whitespace-pre-wrap"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.3, duration: 1 }}
-                          >
-                            <TypewriterCode 
-                              text={currentStory?.code || ''} 
-                              trigger={currentSection}
-                            />
-                          </motion.pre>
-                        </div>
-                      </div>
-                    </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
 
           {/* Final READY section */}
-          {currentSection === 5 && (
+          {currentSection === 4 && (
             <AnimatePresence>
               <motion.div 
                 className="text-center w-full"
@@ -642,7 +459,7 @@ const plans = {
       </div>
 
       {/* Scroll area */}
-      <div className="h-[600vh] relative z-30">
+      <div className="h-[500vh] relative z-30">
         {/* Scroll indicator */}
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40">
           <motion.div 

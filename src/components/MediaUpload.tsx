@@ -9,7 +9,6 @@ interface MediaUploadProps {
   onMediaUpload: (file: File, language: string) => void;
   isLoading: boolean;
   resetTrigger?: number; // Add trigger for reset
-  primaryButtonColor?: string; // Custom color for main buttons
   viewMode?: 'full' | 'compact'; // Display mode
   usageCount?: number; // Current usage count
   monthlyLimit?: number; // Monthly limit
@@ -19,10 +18,9 @@ export default function MediaUpload({
   onMediaUpload, 
   isLoading, 
   resetTrigger, 
-  primaryButtonColor = '#000000',
   viewMode = 'full',
   usageCount = 0,
-  monthlyLimit = 7
+  monthlyLimit = 50
 }: MediaUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
@@ -78,7 +76,7 @@ export default function MediaUpload({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'],
+      'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif'],
       'video/*': ['.mp4', '.mov', '.webm', '.mpeg', '.3gp', '.flv']
     },
     maxFiles: 1,
@@ -114,7 +112,7 @@ export default function MediaUpload({
           ) : (
             <Image 
               src={preview} 
-              alt="Uploaded media" 
+              alt="Uploaded image" 
               className="w-full rounded-lg shadow-sm border border-gray-200"
               width={300}
               height={200}
@@ -207,18 +205,7 @@ export default function MediaUpload({
                     e.stopPropagation();
                     handleRemoveFile();
                   }}
-                  className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200"
-                  style={{ 
-                    backgroundColor: `${primaryButtonColor}B3`, // 70% opacity
-                  }}
-                  onMouseEnter={(e) => {
-                    const target = e.target as HTMLButtonElement;
-                    target.style.backgroundColor = `${primaryButtonColor}E6`; // 90% opacity for hover
-                  }}
-                  onMouseLeave={(e) => {
-                    const target = e.target as HTMLButtonElement;
-                    target.style.backgroundColor = `${primaryButtonColor}B3`; // Back to 70% opacity
-                  }}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/70 hover:bg-black/90 flex items-center justify-center transition-all duration-200"
                   title="Remove file"
                 >
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,7 +258,7 @@ export default function MediaUpload({
                     </svg>
                     <span>
                       {isAtLimit 
-                        ? `Limit Reached (${usageCount}/${monthlyLimit})` 
+                        ? `Monthly Limit Reached (${usageCount}/${monthlyLimit})` 
                         : `Analyze ${fileType === 'video' ? 'Video' : 'Design'}`
                       }
                     </span>
@@ -314,12 +301,12 @@ export default function MediaUpload({
                 Upload Design Media
               </h2>
               <p className="text-lg text-gray-600 font-light">
-                Images, videos, or any UI design asset
+                Images or videos of UI designs
               </p>
               
               {/* Supported formats */}
               <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
-                {['PNG', 'JPG', 'WebP', 'GIF', 'SVG', 'MP4', 'MOV', 'WebM'].map((format) => (
+                {['PNG', 'JPG', 'WebP', 'GIF', 'MP4', 'MOV', 'WebM'].map((format) => (
                   <span 
                     key={format}
                     className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full"

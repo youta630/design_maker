@@ -93,6 +93,7 @@ function getVideoAnalysisPrompt(outputLanguage: string): string {
   **CRITICAL: The entire response MUST be in ${outputLanguage}. Absolutely no other languages are permitted in the output.**`;
   }
 
+
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const windowMs = 60 * 1000; // 1 minute
@@ -404,7 +405,7 @@ export async function POST(request: NextRequest) {
 
   // セキュリティ強化: 使用制限チェックを有効化
   let currentUsage = 0;
-  let monthlyLimit = 7;
+  const monthlyLimit = 50;
   
   try {
     const usageResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/usage`, {
@@ -423,13 +424,12 @@ export async function POST(request: NextRequest) {
     }
 
     const usageData = await usageResponse.json();
-    currentUsage = usageData.usageCount;
-    monthlyLimit = usageData.monthlyLimit;
+    currentUsage = usageData.usageCount || 0;
 
     // 使用制限チェック
     if (currentUsage >= monthlyLimit) {
       return NextResponse.json(
-        { error: `You have reached your monthly limit of ${monthlyLimit} analyses. Please upgrade your plan.` }, 
+        { error: `You have reached your monthly limit of ${monthlyLimit} analyses. Try again next month or upgrade for unlimited access.` }, 
         { status: 429 }
       );
     }
@@ -577,26 +577,18 @@ export async function POST(request: NextRequest) {
       supabase
     );
 
-    // Debug: Log actual API response for video analysis
-    if (isVideo && process.env.NODE_ENV === 'development') {
-      console.log('=== VIDEO ANALYSIS DEBUG ===');
-      console.log('Response length:', text.length);
-      console.log('First 500 chars:', text.substring(0, 500));
-      console.log('Last 500 chars:', text.substring(Math.max(0, text.length - 500)));
-      console.log('Full response preview:', text.substring(0, 1000));
-      console.log('============================');
-    }
 
     // セキュアなファイル保存とデータベース操作
     let fileUrl = '';
-    let thumbnailUrl = '';
     
     try {
       // セキュリティチェック: ファイルサイズとタイプの再検証
-      if (file.size > 50 * 1024 * 1024) { // 50MB limit
-        throw new Error('File size exceeds 50MB limit');
+      const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for videos, 10MB for images
+      if (file.size > maxSize) {
+        throw new Error(`File size exceeds ${isVideo ? '50MB' : '10MB'} limit`);
       }
 
+      // ファイルアップロード（動画の場合はサムネイルのみ保存）
       const uploadResult = await uploadFile(file, user.id);
       if (uploadResult.error) {
         console.error('File upload error:', uploadResult.error);
@@ -604,29 +596,7 @@ export async function POST(request: NextRequest) {
       } else {
         fileUrl = uploadResult.publicUrl;
         if (process.env.NODE_ENV === 'development') {
-          console.log('File uploaded successfully:', fileUrl);
-        }
-      }
-
-      // Generate thumbnail for videos with security validation
-      if (isVideo && !uploadResult.error && processedMedia.buffer.length > 0) {
-        try {
-          const thumbnailResult = await generateAndUploadThumbnail(
-            processedMedia.buffer, 
-            user.id, 
-            file.name
-          );
-          if (thumbnailResult.error) {
-            console.error('Thumbnail upload error:', thumbnailResult.error);
-          } else {
-            thumbnailUrl = thumbnailResult.publicUrl;
-            if (process.env.NODE_ENV === 'development') {
-              console.log('Thumbnail uploaded successfully:', thumbnailUrl);
-            }
-          }
-        } catch (thumbnailError) {
-          console.error('Thumbnail generation failed:', thumbnailError);
-          // Continue without thumbnail
+          console.log(`${isVideo ? 'Video thumbnail' : 'Image'} uploaded successfully:`, fileUrl);
         }
       }
     } catch (storageError) {
@@ -645,7 +615,6 @@ export async function POST(request: NextRequest) {
           mime_type: file.type.substring(0, 100), // Limit mime type length
           specification: text,
           file_url: fileUrl || null,
-          thumbnail_storage_path: thumbnailUrl || null,
           created_at: new Date().toISOString()
         });
 
@@ -674,7 +643,6 @@ export async function POST(request: NextRequest) {
       if (usageUpdateResponse.ok) {
         const updatedUsage = await usageUpdateResponse.json();
         currentUsage = updatedUsage.usageCount;
-        monthlyLimit = updatedUsage.monthlyLimit;
         console.log('Usage count updated successfully');
       } else {
         console.error('Failed to update usage count via API');
@@ -691,7 +659,7 @@ export async function POST(request: NextRequest) {
       fileSize: file.size,
       outputLength: text.length,
       userId: user.id,
-      usageCount: currentUsage + 1
+      usageCount: currentUsage
     });
 
     return NextResponse.json({ 
@@ -703,8 +671,7 @@ export async function POST(request: NextRequest) {
       processedMimeType: processedMedia.mimeType,
       mediaType: isVideo ? 'video' : 'image',
       fileUrl: fileUrl || null,
-      thumbnailUrl: thumbnailUrl || null,
-      usageCount: currentUsage + 1,
+      usageCount: currentUsage,
       monthlyLimit: monthlyLimit
     });
 
