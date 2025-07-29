@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import MediaUpload from '@/components/MediaUpload';
-import SpecificationDisplay from '@/components/SpecificationDisplay';
+import MEDSJsonViewer from '@/components/MEDSJsonViewer';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import type { MEDSSpec } from '@/lib/validation/medsSchema';
 
 interface AnalysisResult {
-  specification: string;
+  id: string;
+  spec: MEDSSpec;
   fileName: string;
   fileSize: number;
   mimeType: string;
-  usageCount: number;
-  monthlyLimit: number;
 }
 
 export default function AppPage() {
@@ -97,7 +97,7 @@ export default function AppPage() {
   };
 
 
-  const handleMediaUpload = async (file: File, language: string) => {
+  const handleMediaUpload = async (file: File) => {
     // 月次使用制限確認
     if (usageCount >= monthlyLimit) {
       setError(`Monthly usage limit reached (${usageCount}/${monthlyLimit}). Try again next month or upgrade for unlimited access.`);
@@ -115,11 +115,11 @@ export default function AppPage() {
         throw new Error('Authentication required. Please log in again.');
       }
 
+      // Only images are supported now
       const formData = new FormData();
-      formData.append('media', file);
-      formData.append('language', language);
+      formData.append('file', file);
 
-      const response = await fetch('/api/analyze-design', {
+      const response = await fetch('/api/spec/extract', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -132,11 +132,21 @@ export default function AppPage() {
         throw new Error(errorData.error || `Error: ${response.status}`);
       }
 
-      const data: AnalysisResult = await response.json();
-      setResult(data);
+      const data = await response.json();
       
-      // Update usage count
-      setUsageCount(data.usageCount);
+      // Create AnalysisResult with MEDS spec
+      const analysisResult: AnalysisResult = {
+        id: data.id,
+        spec: data.spec,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type
+      };
+      
+      setResult(analysisResult);
+      
+      // Since we're using new API, we need to refresh usage count separately
+      await loadUsageData();
       
     } catch (err) {
       console.error('Upload error:', err);
@@ -331,8 +341,8 @@ export default function AppPage() {
               </div>
 
               <div className="flex-1">
-                <SpecificationDisplay
-                  specification={result.specification}
+                <MEDSJsonViewer
+                  spec={result.spec}
                   fileName={result.fileName}
                   fileSize={result.fileSize}
                 />

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import type { MEDSSpec } from '@/lib/validation/medsSchema';
 
 // Runtime configuration for Node.js environment
 export const runtime = 'nodejs';
@@ -35,17 +36,14 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100); // 最大100件
     const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0);
 
-    // 解析履歴をDBから取得（新しい順）
+    // UI仕様履歴をDBから取得（新しい順）
     const { data: historyData, error: historyError } = await supabase
-      .from('analysis_history')
+      .from('specs')
       .select(`
         id,
-        file_name,
-        file_size,
-        mime_type,
-        specification,
-        file_url,
-        thumbnail_storage_path,
+        modality,
+        source_meta,
+        spec,
         created_at
       `)
       .eq('user_id', user.id)
@@ -60,21 +58,44 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // レスポンス形式を統一
-    const formattedHistory = (historyData || []).map(item => ({
-      id: item.id,
-      fileName: item.file_name,
-      fileSize: item.file_size,
-      mimeType: item.mime_type,
-      specification: item.specification,
-      createdAt: item.created_at,
-      fileUrl: item.file_url || undefined,
-      thumbnail: item.thumbnail_storage_path || undefined
-    }));
+    // レスポンス形式を統一（JSON直接返却）
+    const formattedHistory = (historyData || []).map(item => {
+      try {
+        // source_meta から元のファイル情報を取得
+        const sourceMeta = item.source_meta as Record<string, unknown>;
+        const fileName = (sourceMeta?.fileName as string) || 'Unknown';
+        
+        // 画像URLを取得 (source_metaに保存されたURL)
+        const imageUrl = (sourceMeta?.imageUrl as string) || undefined;
+        
+        return {
+          id: item.id,
+          fileName,
+          fileSize: (sourceMeta?.fileSize as number) || 0,
+          mimeType: (sourceMeta?.mimeType as string) || `${item.modality}/*`,
+          spec: item.spec as MEDSSpec, // JSON直接返却
+          createdAt: item.created_at,
+          imageUrl, // 実際の画像URL
+          modality: item.modality
+        };
+      } catch (error) {
+        console.error('Failed to process history item:', item.id, error);
+        return {
+          id: item.id,
+          fileName: 'Error',
+          fileSize: 0,
+          mimeType: 'unknown',
+          spec: null,
+          createdAt: item.created_at,
+          imageUrl: undefined,
+          modality: item.modality
+        };
+      }
+    });
 
     // 総数を取得（ページネーション用）
     const { count, error: countError } = await supabase
-      .from('analysis_history')
+      .from('specs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
@@ -136,9 +157,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // セキュリティ: 自分の履歴のみ削除可能
+    // セキュリティ: 自分の仕様のみ削除可能
     const { error: deleteError } = await supabase
-      .from('analysis_history')
+      .from('specs')
       .delete()
       .eq('id', id)
       .eq('user_id', user.id); // 重要：ユーザーIDも条件に含める

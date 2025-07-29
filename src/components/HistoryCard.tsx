@@ -1,13 +1,16 @@
 'use client';
 
+import type { MEDSSpec } from '@/lib/validation/medsSchema';
+
 interface HistoryItem {
   id: string;
   fileName: string;
   fileSize: number;
   mimeType: string;
-  specification: string;
+  spec: MEDSSpec | null;
   createdAt: string;
-  thumbnail?: string;
+  imageUrl?: string;
+  modality: string;
 }
 
 interface HistoryCardProps {
@@ -17,7 +20,6 @@ interface HistoryCardProps {
 }
 
 export default function HistoryCard({ item, onView, onDelete }: HistoryCardProps) {
-  const isVideo = item.mimeType.startsWith('video/');
   const isImage = item.mimeType.startsWith('image/');
 
   const formatFileSize = (bytes: number) => {
@@ -44,39 +46,24 @@ export default function HistoryCard({ item, onView, onDelete }: HistoryCardProps
       onClick={() => onView(item)}
     >
       <div className="flex">
-        {/* Media Preview */}
+        {/* Image Preview */}
         <div className="w-32 h-24 flex-shrink-0 bg-gray-100 flex items-center justify-center relative">
-          {isVideo ? (
-            <>
-              {/* Video Icon */}
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              
-              {/* Video Badge */}
-              <div className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-medium">
-                VIDEO
-              </div>
-            </>
-          ) : isImage ? (
-            <>
-              {item.thumbnail ? (
-                <img 
-                  src={item.thumbnail} 
-                  alt={item.fileName}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              )}
-            </>
+          {isImage && item.imageUrl ? (
+            <img 
+              src={item.imageUrl} 
+              alt={item.fileName}
+              className="w-full h-full object-cover rounded-l-lg"
+            />
           ) : (
             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           )}
+          
+          {/* MEDS Badge */}
+          <div className="absolute top-1 right-1 bg-black text-white text-xs px-1.5 py-0.5 rounded font-medium">
+            MEDS
+          </div>
         </div>
 
         {/* Content */}

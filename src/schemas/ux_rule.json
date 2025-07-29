@@ -1,0 +1,217 @@
+{
+  "version": "0.2",
+  "evaluation": {
+    "order": "first-match-wins",
+    "contextKeys": [
+      "severity",
+      "needsSharableURL",
+      "keepContext",
+      "taskLengthScreens",
+      "contentWidthNarrow",
+      "formFields",
+      "isDestructive",
+      "blocking",
+      "globalError",
+      "contentType",
+      "reversible",
+      "progressKnown",
+      "hasFabOnScreen",
+      "deviceHasTouch",
+      "emptyState",
+      "fieldErrors"
+    ],
+    "fallback": "use-defaults"
+  },
+  "policies": [
+    {
+      "policyId": "desktop-standard-v2",
+      "platform": "desktop",
+      "tokenHints": {
+        "feedback": {
+          "error": "error",
+          "warning": "warning",
+          "success": "success",
+          "info": "brand"
+        }
+      },
+      "rules": [
+        {
+          "id": "nav-01",
+          "family": "Navigation",
+          "event": "click",
+          "selector": { "location": "TopNav" },
+          "action": "route",
+          "priority": "high",
+          "confidence": 1.0,
+          "origin": "policy-default",
+          "guards": [
+            { "when": { "needsSharableURL": true }, "then": { "action": "route" } },
+            { "when": { "taskLengthScreens": ">1" }, "then": { "action": "route" } }
+          ],
+          "rationale": ["Use pages for long/complex tasks and shareable state"]
+        },
+        {
+          "id": "detail-quick",
+          "family": "Details",
+          "event": "click",
+          "selector": { "location": "Card", "labelIncludes": ["View", "Details"] },
+          "action": "modal",
+          "alternatives": ["route", "drawer"],
+          "priority": "high",
+          "confidence": 1.0,
+          "origin": "policy-default",
+          "guards": [
+            { "when": { "needsSharableURL": true }, "then": { "action": "route" } },
+            { "when": { "taskLengthScreens": ">1" }, "then": { "action": "route" } },
+            { "when": { "keepContext": true, "contentWidthNarrow": true }, "then": { "action": "drawer" } }
+          ],
+          "rationale": ["Modal for short, streamlined review; route for lengthy/deeplinked content; drawer keeps context for side-by-side"]
+        },
+        {
+          "id": "edit-narrow",
+          "family": "Edit",
+          "event": "click",
+          "selector": { "labelIncludes": ["Edit", "Modify"] },
+          "action": "drawer",
+          "alternatives": ["modal", "inline", "route"],
+          "priority": "high",
+          "confidence": 1.0,
+          "origin": "policy-default",
+          "guards": [
+            { "when": { "isDestructive": true }, "then": { "action": "modal" } },
+            { "when": { "formFields": ">12" }, "then": { "action": "route" } },
+            { "when": { "keepContext": false }, "then": { "action": "route" } }
+          ],
+          "rationale": ["Drawer preserves context for narrow edits; destructive flows must block; long forms move to page"]
+        },
+        {
+          "id": "confirm-destructive",
+          "family": "Confirm",
+          "event": "click",
+          "selector": { "labelIncludes": ["Delete", "Remove"] },
+          "action": "modal",
+          "priority": "high",
+          "confidence": 1.0,
+          "origin": "policy-default",
+          "rationale": ["Blocking confirmation for destructive actions"]
+        },
+        {
+          "id": "feedback-submit",
+          "family": "Feedback",
+          "event": "submit",
+          "selector": { "location": "Form" },
+          "action": "toast",
+          "alternatives": ["banner"],
+          "priority": "medium",
+          "confidence": 1.0,
+          "origin": "policy-default",
+          "guards": [
+            { "when": { "blocking": true }, "then": { "action": "modal" } },
+            { "when": { "globalError": true }, "then": { "action": "banner" } },
+            { "when": { "severity": "error" }, "then": { "style": { "colorToken": "error" } } },
+            { "when": { "severity": "warning" }, "then": { "style": { "colorToken": "warning" } } },
+            { "when": { "severity": "success" }, "then": { "style": { "colorToken": "success" } } },
+            { "when": { "severity": "info" }, "then": { "style": { "colorToken": "brand" } } }
+          ],
+          "rationale": ["Use non-modal for passive feedback; tone color driven by severity; escalate if blocking or global"]
+        }
+      ],
+      "defaults": {
+        "detailOpen": { "desktop": "modal", "mobile": "sheet" },
+        "editOpen": { "desktop": "drawer", "mobile": "sheet" },
+        "settingsOpen": "route"
+      }
+    },
+    {
+      "policyId": "mobile-standard-v2",
+      "platform": "mobile",
+      "tokenHints": {
+        "feedback": {
+          "error": "error",
+          "warning": "warning",
+          "success": "success",
+          "info": "brand"
+        }
+      },
+      "rules": [
+        {
+          "id": "nav-home",
+          "family": "Navigation",
+          "event": "click",
+          "selector": { "location": "TopNav" },
+          "action": "route",
+          "priority": "high",
+          "confidence": 1.0,
+          "origin": "policy-default",
+          "rationale": ["Use pages for primary navigation on mobile"]
+        },
+        {
+          "id": "detail-quick-sheet",
+          "family": "Details",
+          "event": "click",
+          "selector": { "location": "Card", "labelIncludes": ["View", "Details"] },
+          "action": "sheet",
+          "alternatives": ["route"],
+          "priority": "high",
+          "confidence": 1.0,
+          "origin": "policy-default",
+          "guards": [
+            { "when": { "needsSharableURL": true }, "then": { "action": "route" } },
+            { "when": { "taskLengthScreens": ">1" }, "then": { "action": "route" } }
+          ],
+          "rationale": ["Prefer sheets to keep context; route if lengthy or deep link needed"]
+        },
+        {
+          "id": "edit-sheet",
+          "family": "Edit",
+          "event": "click",
+          "selector": { "labelIncludes": ["Edit", "Modify"] },
+          "action": "sheet",
+          "alternatives": ["modal", "inline", "route"],
+          "priority": "high",
+          "confidence": 1.0,
+          "origin": "policy-default",
+          "guards": [
+            { "when": { "isDestructive": true }, "then": { "action": "modal" } },
+            { "when": { "formFields": ">8" }, "then": { "action": "route" } }
+          ],
+          "rationale": ["Mobile prefers sheets; destructive edits must block; long forms go to page"]
+        },
+        {
+          "id": "confirm-mobile",
+          "family": "Confirm",
+          "event": "click",
+          "selector": { "labelIncludes": ["Delete", "Remove"] },
+          "action": "modal",
+          "priority": "high",
+          "confidence": 1.0,
+          "origin": "policy-default"
+        },
+        {
+          "id": "feedback-toast-mobile",
+          "family": "Feedback",
+          "event": "submit",
+          "selector": { "location": "Form" },
+          "action": "toast",
+          "alternatives": ["banner"],
+          "priority": "medium",
+          "confidence": 1.0,
+          "origin": "policy-default",
+          "guards": [
+            { "when": { "blocking": true }, "then": { "action": "modal" } },
+            { "when": { "globalError": true }, "then": { "action": "banner" } },
+            { "when": { "severity": "error" }, "then": { "style": { "colorToken": "error" } } },
+            { "when": { "severity": "warning" }, "then": { "style": { "colorToken": "warning" } } },
+            { "when": { "severity": "success" }, "then": { "style": { "colorToken": "success" } } },
+            { "when": { "severity": "info" }, "then": { "style": { "colorToken": "brand" } } }
+          ]
+        }
+      ],
+      "defaults": {
+        "detailOpen": { "desktop": "modal", "mobile": "sheet" },
+        "editOpen": { "desktop": "drawer", "mobile": "sheet" },
+        "settingsOpen": "route"
+      }
+    }
+  ]
+}

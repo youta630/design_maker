@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 export const runtime = 'nodejs';
 
 /**
- * セキュアな月次使用量取得API
+ * 月次使用量取得API (新設計: usage_monthly テーブル)
  * 月50回制限での使用量管理
  */
 export async function GET(request: NextRequest) {
@@ -30,83 +30,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 月次使用量データを取得（月次リセット処理含む）
-    const { data: userUsage, error: usageError } = await supabase
-      .from('user_usage')
-      .select('usage_count, monthly_limit, last_reset_date')
+    // 現在月のキー (YYYY-MM 形式)
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    
+    // 月次使用量データを取得
+    const { data: monthlyUsage, error: usageError } = await supabase
+      .from('usage_monthly')
+      .select('count')
       .eq('user_id', user.id)
+      .eq('month', currentMonth)
       .single();
 
+    let usageCount = 0;
+    
     if (usageError) {
       if (usageError.code === 'PGRST116') {
-        // ユーザーレコードが存在しない場合は作成
-        const { data: newUsage, error: createError } = await supabase
-          .from('user_usage')
-          .insert({
-            user_id: user.id,
-            usage_count: 0,
-            monthly_limit: 50
-          })
-          .select('usage_count, monthly_limit')
-          .single();
-
-        if (createError) {
-          console.error('Failed to create user usage record:', createError);
-          return NextResponse.json(
-            { error: 'Failed to initialize user account' }, 
-            { status: 500 }
-          );
-        }
-
-        return NextResponse.json({
-          usageCount: newUsage.usage_count || 0,
-          monthlyLimit: newUsage.monthly_limit || 50
-        });
-      }
-
-      console.error('Usage query error:', usageError);
-      return NextResponse.json(
-        { error: 'Failed to fetch usage data' }, 
-        { status: 500 }
-      );
-    }
-
-    // 月次リセットチェック：現在月の開始日よりも古い場合はリセット
-    const currentMonthStart = new Date();
-    currentMonthStart.setDate(1);
-    currentMonthStart.setHours(0, 0, 0, 0);
-    
-    const lastResetDate = new Date(userUsage.last_reset_date);
-    
-    let finalUsageCount = userUsage.usage_count || 0;
-    
-    if (lastResetDate < currentMonthStart) {
-      // 使用量をリセット
-      const { data: resetData, error: resetError } = await supabase
-        .from('user_usage')
-        .update({ 
-          usage_count: 0,
-          last_reset_date: currentMonthStart.toISOString().split('T')[0], // YYYY-MM-DD format
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-        .select('usage_count')
-        .single();
-
-      if (resetError) {
-        console.error('Failed to reset monthly usage:', resetError);
-        // リセットに失敗しても現在のデータを返す
+        // 当月のレコードが存在しない場合は0回
+        usageCount = 0;
       } else {
-        finalUsageCount = resetData.usage_count || 0;
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Monthly usage reset completed for user:', user.id);
-        }
+        console.error('Usage query error:', usageError);
+        return NextResponse.json(
+          { error: 'Failed to fetch usage data' }, 
+          { status: 500 }
+        );
       }
+    } else {
+      usageCount = monthlyUsage?.count || 0;
     }
 
     return NextResponse.json({
-      usageCount: finalUsageCount,
-      monthlyLimit: userUsage.monthly_limit || 50
+      usageCount,
+      monthlyLimit: 50,
+      currentMonth
     });
 
   } catch (error) {
@@ -119,7 +74,8 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * 月次使用量更新API（analyze-design から呼び出される内部API）
+ * 月次使用量増加API (extract成功時のみ呼び出し)
+ * upsert によるアトミックな増加処理
  */
 export async function PATCH(request: NextRequest) {
   try {
@@ -143,65 +99,94 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // 現在の月次使用量を取得（リセット処理含む）
-    const { data: currentUsage, error: fetchError } = await supabase
-      .from('user_usage')
-      .select('usage_count, monthly_limit, last_reset_date')
-      .eq('user_id', user.id)
-      .single();
+    // 現在月のキー (YYYY-MM 形式)
+    const currentMonth = new Date().toISOString().slice(0, 7);
 
-    if (fetchError) {
-      console.error('Failed to fetch current usage:', fetchError);
-      return NextResponse.json(
-        { error: 'Failed to fetch usage data' }, 
-        { status: 500 }
-      );
-    }
+    // アトミックな upsert による使用量増加
+    const { data, error: upsertError } = await supabase
+      .rpc('increment_monthly_usage', {
+        p_user_id: user.id,
+        p_month: currentMonth
+      });
 
-    // 月次リセットチェック：使用量増加前にリセットが必要か確認
-    const currentMonthStart = new Date();
-    currentMonthStart.setDate(1);
-    currentMonthStart.setHours(0, 0, 0, 0);
-    
-    const lastResetDate = new Date(currentUsage.last_reset_date);
-    let baseUsageCount = currentUsage.usage_count || 0;
-    
-    if (lastResetDate < currentMonthStart) {
-      // リセットが必要な場合は0から開始
-      baseUsageCount = 0;
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Resetting usage count for new month for user:', user.id);
+    if (upsertError) {
+      console.error('Failed to increment usage count:', upsertError);
+      
+      // Fallback: 手動でupsert処理
+      try {
+        const { data: insertData, error: insertError } = await supabase
+          .from('usage_monthly')
+          .insert({
+            user_id: user.id,
+            month: currentMonth,
+            count: 1
+          })
+          .select('count')
+          .single();
+
+        if (insertError) {
+          if (insertError.code === '23505') { // Unique constraint violation
+            // 既存レコードをupdate (現在の値を取得してからインクリメント)
+            const { data: currentData, error: fetchError } = await supabase
+              .from('usage_monthly')
+              .select('count')
+              .eq('user_id', user.id)
+              .eq('month', currentMonth)
+              .single();
+
+            if (fetchError) {
+              throw fetchError;
+            }
+
+            const { data: updateData, error: updateError } = await supabase
+              .from('usage_monthly')
+              .update({ count: (currentData.count || 0) + 1 })
+              .eq('user_id', user.id)
+              .eq('month', currentMonth)
+              .select('count')
+              .single();
+
+            if (updateError) {
+              console.error('Failed to update usage count:', updateError);
+              return NextResponse.json(
+                { error: 'Failed to update usage' }, 
+                { status: 500 }
+              );
+            }
+
+            return NextResponse.json({
+              usageCount: updateData.count,
+              monthlyLimit: 50,
+              currentMonth
+            });
+          } else {
+            throw insertError;
+          }
+        }
+
+        return NextResponse.json({
+          usageCount: insertData.count,
+          monthlyLimit: 50,
+          currentMonth
+        });
+
+      } catch (fallbackError) {
+        console.error('Fallback upsert failed:', fallbackError);
+        return NextResponse.json(
+          { error: 'Failed to update usage' }, 
+          { status: 500 }
+        );
       }
     }
 
-    // 使用量を1増加（リセット同時処理）
-    const { data, error: updateError } = await supabase
-      .from('user_usage')
-      .update({ 
-        usage_count: baseUsageCount + 1,
-        last_used_at: new Date().toISOString(),
-        last_reset_date: lastResetDate < currentMonthStart ? currentMonthStart.toISOString().split('T')[0] : currentUsage.last_reset_date,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', user.id)
-      .select('usage_count, monthly_limit')
-      .single();
-
-    if (updateError) {
-      console.error('Failed to update usage count:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to update usage' }, 
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json({
-      usageCount: data.usage_count,
-      monthlyLimit: data.monthly_limit
+      usageCount: data,
+      monthlyLimit: 50,
+      currentMonth
     });
 
   } catch (error) {
-    console.error('Usage update API error:', error);
+    console.error('Usage increment API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' }, 
       { status: 500 }

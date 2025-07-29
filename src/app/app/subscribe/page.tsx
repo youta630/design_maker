@@ -8,6 +8,7 @@ import { OrbitControls, Stars, Sphere } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { supabase } from '@/lib/supabase/client';
 import Blob from '@/components/3d/Blob';
+import ComingSoonModal from '@/components/ComingSoonModal';
 import * as THREE from 'three';
 
 // 宇宙的な3Dシーン - PostProcessing対応
@@ -104,6 +105,7 @@ export default function SubscribePage() {
   const [currentPlan, setCurrentPlan] = useState<number>(0); // デフォルトでMonthly
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>('free');
   const [userSubscriptionPlan, setUserSubscriptionPlan] = useState<string | null>(null);
+  const [showComingSoonModal, setShowComingSoonModal] = useState<boolean>(false);
 
   useEffect(() => {
     loadSubscriptionData();
@@ -138,84 +140,17 @@ export default function SubscribePage() {
   };
 
   const handleSubscribe = async (planType: 'monthly' | 'yearly') => {
-    // Security: Validate user authentication state
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
-      console.error('User not authenticated');
-      // Redirect to login
-      return;
-    }
-
-    if (subscriptionStatus !== 'free') {
-      console.log('User already has a subscription');
-      return;
-    }
-    
-    // Security: Validate plan type against allowed values
-    if (!['monthly', 'yearly'].includes(planType)) {
-      console.error('Invalid plan type');
-      return;
-    }
-    
-    try {
-      // Get user info for Polar checkout
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('User not found');
-        return;
-      }
-
-      // Create Stripe checkout
-      const checkoutUrl = new URL('/api/checkout', window.location.origin);
-      checkoutUrl.searchParams.set('plan', planType);
-      checkoutUrl.searchParams.set('user_id', user.id);
-      
-      const response = await fetch(checkoutUrl.toString());
-      const data = await response.json();
-      
-      if (data.url) {
-        // Redirect to Stripe checkout
-        window.location.href = data.url;
-      } else if (data.redirect) {
-        // Handle existing subscription case
-        window.location.href = data.redirect;
-      } else {
-        console.error('Checkout failed:', data.error);
-      }
-      
-    } catch (error) {
-      console.error('Checkout initiation failed:', error);
-    }
+    // 無料アプリのため課金処理は無効化
+    console.log(`課金機能は準備中です。プラン: ${planType}`);
+    setShowComingSoonModal(true);
+    return;
   };
 
   const handleCancelSubscription = async () => {
-    try {
-      // Security: Validate user authentication state
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        console.error('User not authenticated');
-        return;
-      }
-
-      // Security: Validate user has an active subscription
-      if (subscriptionStatus === 'free') {
-        console.error('No active subscription to cancel');
-        return;
-      }
-
-      // Redirect to Stripe Customer Portal for subscription management
-      const response = await fetch('/api/portal?return=cancel');
-      const data = await response.json();
-      
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        console.error('Portal access failed:', data.error);
-      }
-      
-    } catch (error) {
-      console.error('Error accessing customer portal:', error);
-    }
+    // 無料アプリのためキャンセル処理は無効化
+    console.log('キャンセル機能は準備中です。');
+    setShowComingSoonModal(true);
+    return;
   };
 
   const getSubscriptionButtonText = (planType: 'monthly' | 'yearly') => {
@@ -277,19 +212,21 @@ export default function SubscribePage() {
   return (
     <div className="h-screen w-screen bg-white overflow-x-auto overflow-y-hidden relative">
       {/* 3D宇宙背景 - 高品質設定 */}
-      <div className="fixed inset-0 z-0">
-        <Canvas 
-          camera={{ position: [0, 0, 8], fov: 75 }}
-          gl={{ 
-            antialias: true, 
-            toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 1.2,
-            outputColorSpace: THREE.SRGBColorSpace
-          }}
-        >
-          <CosmicScene currentPlan={currentPlan} />
-        </Canvas>
-      </div>
+      {!showComingSoonModal && (
+        <div className="fixed inset-0 z-0">
+          <Canvas 
+            camera={{ position: [0, 0, 8], fov: 75 }}
+            gl={{ 
+              antialias: true, 
+              toneMapping: THREE.ACESFilmicToneMapping,
+              toneMappingExposure: 1.2,
+              outputColorSpace: THREE.SRGBColorSpace
+            }}
+          >
+            <CosmicScene currentPlan={currentPlan} />
+          </Canvas>
+        </div>
+      )}
 
       {/* ヘッダー */}
       <motion.header 
@@ -527,6 +464,14 @@ export default function SubscribePage() {
           ))}
         </div>
       </div>
+
+      {/* Coming Soon Modal */}
+      <ComingSoonModal
+        isOpen={showComingSoonModal}
+        onClose={() => setShowComingSoonModal(false)}
+        title="準備中"
+        message="課金機能は現在準備中です。しばらくお待ちください。"
+      />
 
     </div>
   );
