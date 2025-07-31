@@ -1,20 +1,89 @@
-<!-- Design Spec Generator Favicon - Clarity Diamond -->
+<!-- Design Spec Generator Favicon - Rubik's Cube -->
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- 背景 - 少し丸みを帯びた -->
-  <rect width="32" height="32" rx="6" fill="#1a1a1a"/>
+  <defs>
+    <linearGradient id="greenTopSmall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#00FF7F"/>
+      <stop offset="100%" stopColor="#00CC64"/>
+    </linearGradient>
+    <linearGradient id="greenLeftSmall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#00CC64"/>
+      <stop offset="100%" stopColor="#009B4C"/>
+    </linearGradient>
+    <linearGradient id="greenRightSmall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#009B4C"/>
+      <stop offset="100%" stopColor="#006B35"/>
+    </linearGradient>
+    <linearGradient id="blackTopSmall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#404040"/>
+      <stop offset="100%" stopColor="#2A2A2A"/>
+    </linearGradient>
+    <linearGradient id="blackLeftSmall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#2A2A2A"/>
+      <stop offset="100%" stopColor="#1A1A1A"/>
+    </linearGradient>
+    <linearGradient id="blackRightSmall" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#1A1A1A"/>
+      <stop offset="100%" stopColor="#0A0A0A"/>
+    </linearGradient>
+  </defs>
   
-  <!-- メインダイアモンド - より大きく、より太く -->
-  <path d="M8 16L16 8L24 16L16 24L8 16z" 
-        stroke="#ffffff" 
-        strokeWidth="2" 
-        fill="none"/>
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#0A0A0A"/>
   
-  <!-- 中心の点 - より大きく -->
-  <circle cx="16" cy="16" r="2" fill="#ffffff"/>
-  
-  <!-- シンプルな十字線 -->
-  <path d="M8 16h16M16 8v16" 
-        stroke="#ffffff" 
-        strokeWidth="1" 
-        opacity="0.6"/>
+  <!-- Simplified 3x3 Rubik's Cube -->
+  <g transform="translate(16, 16)">
+    <!-- 3x3 grid of mini cubes -->
+    <g transform="translate(-9, -9)">
+      <!-- Row 1 -->
+      <g transform="translate(-6, -6)">
+        <polygon points="2,0 4,-1 4,1 2,2" fill="url(#greenLeftSmall)"/>
+        <polygon points="4,-1 6,0 6,2 4,1" fill="url(#greenRightSmall)"/>
+        <polygon points="2,0 6,0 6,2 2,2" fill="url(#greenTopSmall)"/>
+      </g>
+      <g transform="translate(0, -6)">
+        <polygon points="2,0 4,-1 4,1 2,2" fill="url(#blackLeftSmall)"/>
+        <polygon points="4,-1 6,0 6,2 4,1" fill="url(#blackRightSmall)"/>
+        <polygon points="2,0 6,0 6,2 2,2" fill="url(#blackTopSmall)"/>
+      </g>
+      <g transform="translate(6, -6)">
+        <polygon points="2,0 4,-1 4,1 2,2" fill="url(#greenLeftSmall)"/>
+        <polygon points="4,-1 6,0 6,2 4,1" fill="url(#greenRightSmall)"/>
+        <polygon points="2,0 6,0 6,2 2,2" fill="url(#greenTopSmall)"/>
+      </g>
+      
+      <!-- Row 2 -->
+      <g transform="translate(-6, 0)">
+        <polygon points="2,0 4,-1 4,1 2,2" fill="url(#blackLeftSmall)"/>
+        <polygon points="4,-1 6,0 6,2 4,1" fill="url(#blackRightSmall)"/>
+        <polygon points="2,0 6,0 6,2 2,2" fill="url(#blackTopSmall)"/>
+      </g>
+      <g transform="translate(0, 0)">
+        <polygon points="2,0 4,-1 4,1 2,2" fill="url(#greenLeftSmall)"/>
+        <polygon points="4,-1 6,0 6,2 4,1" fill="url(#greenRightSmall)"/>
+        <polygon points="2,0 6,0 6,2 2,2" fill="url(#greenTopSmall)"/>
+      </g>
+      <g transform="translate(6, 0)">
+        <polygon points="2,0 4,-1 4,1 2,2" fill="url(#blackLeftSmall)"/>
+        <polygon points="4,-1 6,0 6,2 4,1" fill="url(#blackRightSmall)"/>
+        <polygon points="2,0 6,0 6,2 2,2" fill="url(#blackTopSmall)"/>
+      </g>
+      
+      <!-- Row 3 -->
+      <g transform="translate(-6, 6)">
+        <polygon points="2,0 4,-1 4,1 2,2" fill="url(#greenLeftSmall)"/>
+        <polygon points="4,-1 6,0 6,2 4,1" fill="url(#greenRightSmall)"/>
+        <polygon points="2,0 6,0 6,2 2,2" fill="url(#greenTopSmall)"/>
+      </g>
+      <g transform="translate(0, 6)">
+        <polygon points="2,0 4,-1 4,1 2,2" fill="url(#blackLeftSmall)"/>
+        <polygon points="4,-1 6,0 6,2 4,1" fill="url(#blackRightSmall)"/>
+        <polygon points="2,0 6,0 6,2 2,2" fill="url(#blackTopSmall)"/>
+      </g>
+      <g transform="translate(6, 6)">
+        <polygon points="2,0 4,-1 4,1 2,2" fill="url(#greenLeftSmall)"/>
+        <polygon points="4,-1 6,0 6,2 4,1" fill="url(#greenRightSmall)"/>
+        <polygon points="2,0 6,0 6,2 2,2" fill="url(#greenTopSmall)"/>
+      </g>
+    </g>
+  </g>
 </svg>

@@ -1,32 +1,126 @@
-<!-- Design Spec Generator App Icon - Unified Clarity Diamond -->
+<!-- Design Spec Generator App Icon - Rubik's Cube Style -->
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="512" height="512" rx="96" fill="#1a1a1a"/>
-  
   <defs>
-    <linearGradient id="clarityAppIcon" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3"/>
-      <stop offset="30%" stopColor="#ffffff" stopOpacity="0.6"/>
-      <stop offset="70%" stopColor="#ffffff" stopOpacity="0.9"/>
-      <stop offset="100%" stopColor="#ffffff" stopOpacity="1"/>
+    <!-- Green gradients for cube faces -->
+    <linearGradient id="greenTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#00FF7F"/>
+      <stop offset="100%" stopColor="#00CC64"/>
     </linearGradient>
+    
+    <linearGradient id="greenLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#00CC64"/>
+      <stop offset="100%" stopColor="#009B4C"/>
+    </linearGradient>
+    
+    <linearGradient id="greenRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#009B4C"/>
+      <stop offset="100%" stopColor="#006B35"/>
+    </linearGradient>
+    
+    <!-- Black/Dark gradients -->
+    <linearGradient id="blackTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#404040"/>
+      <stop offset="100%" stopColor="#2A2A2A"/>
+    </linearGradient>
+    
+    <linearGradient id="blackLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#2A2A2A"/>
+      <stop offset="100%" stopColor="#1A1A1A"/>
+    </linearGradient>
+    
+    <linearGradient id="blackRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#1A1A1A"/>
+      <stop offset="100%" stopColor="#0A0A0A"/>
+    </linearGradient>
+    
+    <!-- Shadow filter -->
+    <filter id="cubeShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="6" dy="12" stdDeviation="12" floodColor="#000000" floodOpacity="0.4"/>
+    </filter>
   </defs>
   
-  <!-- Main Clarity Diamond - Large scale for 512x512 -->
-  <path d="M128 256L256 128L384 256L256 384L128 256z" 
-        stroke="url(#clarityAppIcon)" 
-        strokeWidth="16" 
-        fill="none"/>
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#0A0A0A"/>
   
-  <!-- Inner structure lines -->
-  <path d="M128 256h256M256 128v256" 
-        stroke="url(#clarityAppIcon)" 
-        strokeWidth="8" 
-        opacity="0.8"/>
+  <!-- Main Rubik's Cube - 3x3 grid with 3D isometric view -->
+  <g transform="translate(256, 256)" filter="url(#cubeShadow)">
+    
+    <!-- Back layer (partially visible) -->
+    <g transform="translate(-40, -40)">
+      <!-- Top row back -->
+      <g transform="translate(-80, -120)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#blackLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#blackRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#blackTop)"/>
+      </g>
+      <g transform="translate(0, -120)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#greenLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#greenRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#greenTop)"/>
+      </g>
+      <g transform="translate(80, -120)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#blackLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#blackRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#blackTop)"/>
+      </g>
+    </g>
+    
+    <!-- Middle layer -->
+    <g transform="translate(-20, -20)">
+      <!-- Top row -->
+      <g transform="translate(-80, -80)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#greenLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#greenRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#greenTop)"/>
+      </g>
+      <g transform="translate(0, -80)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#blackLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#blackRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#blackTop)"/>
+      </g>
+      <g transform="translate(80, -80)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#greenLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#greenRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#greenTop)"/>
+      </g>
+      
+      <!-- Middle row -->
+      <g transform="translate(-80, 0)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#blackLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#blackRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#blackTop)"/>
+      </g>
+      <g transform="translate(0, 0)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#greenLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#greenRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#greenTop)"/>
+      </g>
+      <g transform="translate(80, 0)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#blackLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#blackRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#blackTop)"/>
+      </g>
+      
+      <!-- Bottom row -->
+      <g transform="translate(-80, 80)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#greenLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#greenRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#greenTop)"/>
+      </g>
+      <g transform="translate(0, 80)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#blackLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#blackRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#blackTop)"/>
+      </g>
+      <g transform="translate(80, 80)">
+        <polygon points="20,0 40,-12 40,8 20,20" fill="url(#greenLeft)"/>
+        <polygon points="40,-12 60,0 60,20 40,8" fill="url(#greenRight)"/>
+        <polygon points="20,0 60,0 60,20 20,20" fill="url(#greenTop)"/>
+      </g>
+    </g>
+    
+  </g>
   
-  <!-- Central core -->
-  <circle cx="256" cy="256" r="24" fill="#ffffff"/>
-  
-  <!-- Subtle glow effect -->
-  <circle cx="256" cy="256" r="36" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.3"/>
+  <!-- Subtle glow around the cube -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#00FF7F" strokeWidth="2" opacity="0.1"/>
 </svg>
