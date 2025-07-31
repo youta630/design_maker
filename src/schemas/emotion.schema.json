@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Emotion Extraction v1.0",
+  "description": "Abstract emotional expressions extracted from images",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "inner_mood": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "Poetic expression of the inner emotional atmosphere"
+    },
+    "visual_texture": {
+      "type": "string", 
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "Description of visual qualities, light, and color feelings"
+    },
+    "tempo": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "Sense of time flow, rhythm, and movement pace"
+    },
+    "distance_to_user": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "Emotional distance and intimacy with the viewer"
+    }
+  },
+  "required": ["version", "inner_mood", "visual_texture", "tempo", "distance_to_user"],
+  "additionalProperties": false
+}

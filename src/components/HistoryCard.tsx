@@ -2,14 +2,52 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import type { MEDSSpec } from '@/lib/validation/medsSchema';
+// Generic spec type for history items
+type GenericSpec = Record<string, unknown>;
+
+// Helper function to get component count from any spec format
+function getComponentCount(spec: GenericSpec | null): number {
+  if (!spec) return 0;
+  
+  // New emotion-driven system: spec.ui.components
+  if (spec.ui && typeof spec.ui === 'object' && spec.ui !== null) {
+    const ui = spec.ui as Record<string, unknown>;
+    if (Array.isArray(ui.components)) {
+      return (ui.components as unknown[]).length;
+    }
+  }
+  
+  // Old MEDS system: spec.components
+  if (Array.isArray(spec.components)) {
+    return (spec.components as unknown[]).length;
+  }
+  
+  return 0;
+}
+
+// Helper function to get system type
+function getSystemType(spec: GenericSpec | null): string {
+  if (!spec) return 'Unknown';
+  
+  // New emotion-driven system
+  if (spec.emotion && spec.ui) {
+    return 'Emotion';
+  }
+  
+  // Old MEDS system
+  if (spec.version && spec.foundations) {
+    return 'MEDS';
+  }
+  
+  return 'Unknown';
+}
 
 interface HistoryItem {
   id: string;
   fileName: string;
   fileSize: number;
   mimeType: string;
-  spec: MEDSSpec | null;
+  spec: GenericSpec | null;
   createdAt: string;
   imageUrl?: string;
   modality: string;
@@ -58,7 +96,7 @@ export default function HistoryCard({ item, onView, onDelete }: HistoryCardProps
               width={128}
               height={96}
               className="w-full h-full object-cover rounded-l-lg"
-              onError={(e) => {
+              onError={() => {
                 console.error('Image load failed for URL:', item.imageUrl);
                 setImageLoadFailed(true);
               }}
@@ -72,17 +110,17 @@ export default function HistoryCard({ item, onView, onDelete }: HistoryCardProps
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span className="text-xs text-blue-500 font-medium">Design</span>
-              {item.spec?.components && (
+              {getComponentCount(item.spec) > 0 && (
                 <span className="text-xs text-gray-400">
-                  {item.spec.components.length} components
+                  {getComponentCount(item.spec)} components
                 </span>
               )}
             </div>
           )}
           
-          {/* MEDS Badge */}
+          {/* System Type Badge */}
           <div className="absolute top-1 right-1 bg-black text-white text-xs px-1.5 py-0.5 rounded font-medium">
-            MEDS
+            {getSystemType(item.spec)}
           </div>
         </div>
 

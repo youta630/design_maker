@@ -5,11 +5,12 @@ import MediaUpload from '@/components/MediaUpload';
 import MEDSJsonViewer from '@/components/MEDSJsonViewer';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
-import type { MEDSSpec } from '@/lib/validation/medsSchema';
+import type { EmotionExtraction, UIGeneration } from '@/lib/emotion/types';
 
 interface AnalysisResult {
-  id: string;
-  spec: MEDSSpec;
+  id?: string;
+  emotion: EmotionExtraction;
+  ui: UIGeneration;
   fileName: string;
   fileSize: number;
   mimeType: string;
@@ -96,7 +97,7 @@ export default function AppPage() {
   };
 
 
-  const handleMediaUpload = async (file: File) => {
+  const handleMediaUpload = async (file: File, screenType: string) => {
     // 月次使用制限確認
     if (usageCount >= monthlyLimit) {
       setError(`Monthly usage limit reached (${usageCount}/${monthlyLimit}). Try again next month or upgrade for unlimited access.`);
@@ -114,11 +115,12 @@ export default function AppPage() {
         throw new Error('Authentication required. Please log in again.');
       }
 
-      // Only images are supported now
+      // Step 1: Extract emotions from image
+      console.log('🎨 Step 1: Extracting emotions...');
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/spec/extract', {
+      const emotionResponse = await fetch('/api/emotion/extract', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -126,17 +128,41 @@ export default function AppPage() {
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Error: ${response.status}`);
+      if (!emotionResponse.ok) {
+        const errorData = await emotionResponse.json();
+        throw new Error(errorData.error || `Emotion extraction failed: ${emotionResponse.status}`);
       }
 
-      const data = await response.json();
+      const emotionData = await emotionResponse.json();
+      console.log('✨ Emotion extracted:', emotionData.emotion);
+
+      // Step 2: Generate UI from emotions
+      console.log('🏗️ Step 2: Generating UI...');
+      const uiResponse = await fetch('/api/ui/generate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          emotion: emotionData.emotion,
+          screenType: screenType
+        }),
+      });
+
+      if (!uiResponse.ok) {
+        const errorData = await uiResponse.json();
+        throw new Error(errorData.error || `UI generation failed: ${uiResponse.status}`);
+      }
+
+      const uiData = await uiResponse.json();
+      console.log('🎯 UI generated:', uiData.ui);
       
-      // Create AnalysisResult with MEDS spec
+      // Create AnalysisResult with emotion + UI
       const analysisResult: AnalysisResult = {
-        id: data.id,
-        spec: data.spec,
+        id: uiData.id,
+        emotion: emotionData.emotion,
+        ui: uiData.ui,
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type
@@ -144,7 +170,7 @@ export default function AppPage() {
       
       setResult(analysisResult);
       
-      // Since we're using new API, we need to refresh usage count separately
+      // Refresh usage count
       await loadUsageData();
       
     } catch (err) {
@@ -328,7 +354,7 @@ export default function AppPage() {
 
               <div className="flex-1">
                 <MEDSJsonViewer
-                  spec={result.spec}
+                  spec={{ emotion: result.emotion, ui: result.ui }}
                   fileName={result.fileName}
                   fileSize={result.fileSize}
                 />

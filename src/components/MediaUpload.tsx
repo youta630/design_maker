@@ -6,13 +6,16 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 
 interface MediaUploadProps {
-  onMediaUpload: (file: File) => void; // Removed language parameter
+  onMediaUpload: (file: File, screenType: string) => void; // Added screenType parameter
   isLoading: boolean;
   resetTrigger?: number; // Add trigger for reset
   viewMode?: 'full' | 'compact'; // Display mode
   usageCount?: number; // Current usage count
   monthlyLimit?: number; // Monthly limit
 }
+
+// Import screen types from emotion lib
+import { SCREEN_TYPES } from '@/lib/emotion/types';
 
 export default function MediaUpload({ 
   onMediaUpload, 
@@ -23,12 +26,14 @@ export default function MediaUpload({
   monthlyLimit = 50
 }: MediaUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [selectedScreenType, setSelectedScreenType] = useState<string>('');
 
   // Reset upload state when resetTrigger changes
   useEffect(() => {
     if (resetTrigger !== undefined) {
       setPreview(null);
       setSelectedFile(null);
+      setSelectedScreenType('');
     }
   }, [resetTrigger]);
 
@@ -52,18 +57,19 @@ export default function MediaUpload({
       return; // 制限に達している場合は処理を停止
     }
     
-    if (selectedFile) {
-      onMediaUpload(selectedFile);
+    if (selectedFile && selectedScreenType) {
+      onMediaUpload(selectedFile, selectedScreenType);
     }
   };
 
   // 制限チェック用のヘルパー関数
   const isAtLimit = usageCount >= monthlyLimit;
-  const isAnalyzeDisabled = !selectedFile || isLoading || isAtLimit;
+  const isAnalyzeDisabled = !selectedFile || !selectedScreenType || isLoading || isAtLimit;
 
   const handleRemoveFile = () => {
     setPreview(null);
     setSelectedFile(null);
+    setSelectedScreenType('');
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -158,7 +164,35 @@ export default function MediaUpload({
             </div>
             
             {!isLoading && (
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Screen Type Selection */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-900 text-center">
+                    What type of screen do you want to design?
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
+                    {SCREEN_TYPES.map((type) => (
+                      <motion.button
+                        key={type.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedScreenType(type.id);
+                        }}
+                        className={`p-3 text-left border rounded-lg transition-all duration-200 ${
+                          selectedScreenType === type.id
+                            ? 'border-gray-900 bg-gray-900 text-white'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-400'
+                        }`}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <div className="text-sm font-medium">{type.name}</div>
+                        <div className="text-xs opacity-75 mt-1">{type.description}</div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Submit button */}
                 <div className="flex justify-center">
                   <motion.button
@@ -181,7 +215,9 @@ export default function MediaUpload({
                     <span>
                       {isAtLimit 
                         ? `Monthly Limit Reached (${usageCount}/${monthlyLimit})` 
-                        : `Analyze Design`
+                        : !selectedScreenType
+                        ? 'Select Screen Type'
+                        : `Generate ${SCREEN_TYPES.find(t => t.id === selectedScreenType)?.name.split(' ')[1] || 'Screen'}`
                       }
                     </span>
                   </motion.button>

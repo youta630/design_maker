@@ -2,13 +2,43 @@
 
 import { useState } from 'react';
 import JsonView from '@uiw/react-json-view';
-import { validateMEDSJSON } from '@/lib/validation/medsSchema';
-import type { MEDSSpec } from '@/lib/validation/medsSchema';
-
+// Generic JSON viewer for any spec data
 interface MEDSJsonViewerProps {
-  spec: MEDSSpec;
+  spec: Record<string, unknown>; // Generic spec data (MEDS, Emotion+UI, etc.)
   fileName?: string;
   fileSize?: number;
+}
+
+// Helper functions for spec info
+function getSpecInfo(spec: Record<string, unknown>) {
+  // New emotion-driven system
+  if (spec.emotion && spec.ui) {
+    const ui = spec.ui as Record<string, unknown>;
+    const screenType = ui.screen_type || 'unknown';
+    const componentCount = Array.isArray(ui.components) ? ui.components.length : 0;
+    return {
+      platform: `${screenType} screen`,
+      components: componentCount,
+      systemType: 'Emotion-driven'
+    };
+  }
+  
+  // Old MEDS system
+  if (spec.viewportProfile || spec.components) {
+    const viewport = spec.viewportProfile as Record<string, unknown> | undefined;
+    const components = spec.components as unknown[] | undefined;
+    return {
+      platform: viewport?.type as string || 'unknown',
+      components: components?.length || 0,
+      systemType: 'MEDS'
+    };
+  }
+  
+  return {
+    platform: 'unknown',
+    components: 0,
+    systemType: 'Unknown'
+  };
 }
 
 export default function MEDSJsonViewer({ 
@@ -17,10 +47,9 @@ export default function MEDSJsonViewer({
   fileSize 
 }: MEDSJsonViewerProps) {
   const [copied, setCopied] = useState(false);
-  const [showUxSignals, setShowUxSignals] = useState(true);
 
-  // Validate the spec
-  const validationResult = validateMEDSJSON(spec);
+  // Simple validation for any spec data
+  const validationResult = { ok: true }; // Always valid for generic data
   
   const handleCopyAll = async () => {
     try {
@@ -40,8 +69,8 @@ export default function MEDSJsonViewer({
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  // Create display spec (conditionally include uxSignals)
-  const displaySpec = showUxSignals ? spec : { ...spec, uxSignals: undefined };
+  // Create display spec (generic data)
+  const displaySpec = spec;
 
   return (
     <div className="w-full h-full flex flex-col bg-white border border-black overflow-hidden">
@@ -50,7 +79,7 @@ export default function MEDSJsonViewer({
         <div className="flex items-center space-x-4">
           <div>
             <div>
-              <h2 className="text-lg font-semibold text-black">MEDS v{spec.version} Specification</h2>
+              <h2 className="text-lg font-semibold text-black">Generated Specification</h2>
               {fileName && (
                 <p className="text-sm text-black">
                   {fileName} {fileSize && `(${formatFileSize(fileSize)})`}
@@ -70,20 +99,6 @@ export default function MEDSJsonViewer({
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Toggle uxSignals */}
-          <button
-            onClick={() => setShowUxSignals(!showUxSignals)}
-            className={`px-3 py-1.5 text-xs font-medium border transition-colors ${
-              showUxSignals 
-                ? 'border-black bg-black text-white' 
-                : 'border-black bg-white text-black hover:bg-black hover:text-white'
-            }`}
-          >
-            {showUxSignals ? 'Hide' : 'Show'} uxSignals
-          </button>
-          
-          <div className="w-px h-6 bg-black" />
-          
           {/* Copy button */}
           <button
             onClick={handleCopyAll}
@@ -116,30 +131,16 @@ export default function MEDSJsonViewer({
           />
         </div>
         
-        {/* Validation Errors */}
-        {!validationResult.ok && validationResult.errors && (
-          <div className="mt-4 p-4 bg-white border border-black">
-            <h3 className="text-sm font-medium text-black mb-2">Validation Errors:</h3>
-            <ul className="text-xs text-black space-y-1">
-              {validationResult.errors.map((error, index) => (
-                <li key={index} className="font-mono">
-                  {error.instancePath || 'root'}: {error.message}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* No validation errors for generic data */}
       </div>
 
       {/* Footer */}
       <div className="bg-white border-t border-gray-200 p-4">
         <div className="flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center space-x-4">
-            <span>Platform: {spec.viewportProfile?.type || 'unknown'}</span>
-            <span>Components: {spec.components?.length || 0}</span>
-            {spec.uxRulebook?.rules && (
-              <span>UX Rules: {spec.uxRulebook.rules.length}</span>
-            )}
+            <span>Platform: {getSpecInfo(spec).platform}</span>
+            <span>Components: {getSpecInfo(spec).components}</span>
+            <span>System: {getSpecInfo(spec).systemType}</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-black rounded-full"></div>

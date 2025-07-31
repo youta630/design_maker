@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { MEDSSpec } from '@/lib/validation/medsSchema';
+// Generic spec type for history
+type GenericSpec = Record<string, unknown>;
 
 // Runtime configuration for Node.js environment
 export const runtime = 'nodejs';
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
           fileName,
           fileSize: (sourceMeta?.fileSize as number) || 0,
           mimeType: (sourceMeta?.mimeType as string) || `${item.modality}/*`,
-          spec: item.spec as MEDSSpec, // JSON直接返却
+          spec: item.spec as GenericSpec, // JSON直接返却
           createdAt: item.created_at,
           imageUrl, // 実際の画像URL
           modality: item.modality

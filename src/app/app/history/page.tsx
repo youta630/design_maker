@@ -5,14 +5,15 @@ import Link from 'next/link';
 import HistoryCard from '@/components/HistoryCard';
 import MEDSJsonViewer from '@/components/MEDSJsonViewer';
 import { supabase } from '@/lib/supabase/client';
-import type { MEDSSpec } from '@/lib/validation/medsSchema';
+// Generic spec type for history items
+type GenericSpec = Record<string, unknown>;
 
 interface HistoryItem {
   id: string;
   fileName: string;
   fileSize: number;
   mimeType: string;
-  spec: MEDSSpec | null;
+  spec: GenericSpec | null;
   createdAt: string;
   imageUrl?: string;
   modality: string;
