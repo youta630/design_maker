@@ -321,7 +321,7 @@ export async function POST(request: NextRequest) {
       .from('specs')
       .insert({
         user_id: user.id,
-        modality: 'emotion-ui',
+        modality: 'ui-generation', // Updated to match existing constraint
         source_meta: {
           fileName: file.name,
           fileSize: file.size,
