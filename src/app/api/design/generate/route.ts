@@ -33,55 +33,185 @@ function checkUserRateLimit(userId: string): boolean {
   return false;
 }
 
-function getEmotionExtractionPrompt(): string {
+function getEmotionExtractionPrompt(screenType: ScreenType): string {
   return [
-    '🎨 You are an abstract, artistic UI designer specializing in emotional interpretation.',
+    '🎨 You are a visionary design strategist who thinks through visual association chains.',
     '',
-    'Look at the given image and extract the emotional atmosphere in poetic but functional language.',
-    'Focus on feelings that could translate into UI design decisions.',
+    'Transform the given image into creative UI concepts through structured associative thinking.',
     '',
-    '✨ IMPORTANT: Use creative, metaphorical language that captures the ineffable qualities.',
-    'Avoid generic phrases like "simple" or "clean".',
-    'You can invent new visual metaphors.',
+    '🧠 THINKING PROCESS:',
     '',
-    '🎯 Extract these 4 dimensions:',
-    '1. inner_mood: The internal emotional atmosphere (like "writing a secret letter in quietude")',
-    '2. visual_texture: Quality of light, color, surface feelings (like "muted pink with morning rays filtering through")', 
-    '3. tempo: Time flow and rhythm (like "slowly flowing with emotional waves")',
-    '4. distance_to_user: Emotional distance and intimacy (like "gently approaching but keeping one step back")',
+    '**Phase 1: Visual Trigger Extraction**',
+    '- Identify 2-5 key visual elements that catch attention',
+    '- Focus on: colors, shapes, textures, spatial relationships, lighting, emotions',
     '',
-    '📝 Output ONLY valid JSON matching the schema. Be poetic but precise.',
+    '**Phase 2: Associative Chain Development**',
+    '- For each trigger, develop 2-4 association paths in parallel',
+    '- Each chain should have 2-5 steps of connected concepts',
+    '- Vary conceptual depth: surface → metaphorical → abstract → philosophical',
+    '- Think like: "Red apple → gravity → Newton → discovery moment"',
     '',
-    'Extract the emotional essence now:'
+    `**Phase 3: Screen-Type Contextual Selection (Target: ${screenType})**`,
+    '- Consider which association path best serves the screen\'s purpose:',
+    '  * home: First impression, attention, memorable impact',
+    '  * browse: Content exploration, visual hierarchy, flow',
+    '  * detail: Focus, clarity, information architecture',
+    '  * input: Usability, trust, completion motivation',
+    '  * dashboard: Efficiency, overview, data comprehension',
+    '  * compare: Decision support, clear differentiation',
+    `- Select the most contextually appropriate concept for a ${screenType} screen`,
+    '',
+    '🎯 OUTPUT REQUIREMENTS:',
+    '- Generate multiple creative paths, then converge on the best fit',
+    '- Ensure the final metaphor is UI-implementable',
+    '- Balance creativity with practical design constraints',
+    '',
+    '📝 Output ONLY valid JSON matching the schema.',
+    '',
+    'Extract and develop visual associations now:'
   ].join('\n');
 }
 
 function getUIGenerationPrompt(screenType: ScreenType): string {
-  return [
-    '🎨 You are a poetic yet practical UI designer.',
+  const commonInstructions = [
+    '🎨 You are a visionary UX choreographer and master of kinetic design.',
     '',
-    'Transform the given emotional expressions into a concrete UI structure.',
-    'Create layouts that embody the emotional atmosphere while remaining functional.',
+    'Transform the given associative concept into a breathtaking, dynamic UI experience.',
+    'Your design should feel alive, translating the core metaphor into functional beauty.',
     '',
-    '✨ DESIGN PHILOSOPHY:',
-    '- Translate emotions into spatial relationships, breathing room, visual hierarchy',
-    '- Consider how emotions affect user interaction patterns and visual flow',
-    '- Balance poetic intention with usability',
-    '',
-    `🎯 TARGET: Design a ${screenType} screen that captures the emotional essence.`,
+    '📝 INPUT: You will receive associative thinking results with:',
+    '- Core metaphor (e.g., "red objects falling by gravity")',
+    '- Emotional direction (e.g., "discovery and surprise")', 
+    '- Interaction essence (e.g., "moment of revelation")',
+    ''
+  ];
+
+  const specificGuidance = getScreenSpecificGuidance(screenType);
+  
+  const commonOutput = [
     '',
     '📐 STRUCTURE YOUR RESPONSE:',
-    '1. layout_description: How the emotion translates to overall space and flow',
-    '2. components: 2-8 key UI elements with their emotional purpose',
-    '',
-    '💡 EXAMPLES of emotional translation:',
-    '- "Quietude" → generous whitespace, soft typography, gentle transitions',
-    '- "Morning light" → subtle gradients, warm color temperature',
-    '- "Distance but warmth" → accessible but not overwhelming CTAs',
+    '1. layout_description: How the metaphor translates to overall space, flow, and visual hierarchy',
+    '2. components: 2-8 key UI elements, each with:',
+    '   - name: Component name (e.g., "Hero Title", "Primary CTA")',
+    '   - metaphor: How this element embodies the core metaphor',
+    '   - style_and_texture: Visual style, lighting, texture, animation details',
+    '   - function_and_interaction: Purpose and user interaction behavior',
     '',
     '📝 Output ONLY valid JSON matching the schema.',
     '',
-    'Design the emotionally-driven UI now:'
+    'Design the metaphor-driven UI now:'
+  ];
+
+  return [...commonInstructions, specificGuidance, ...commonOutput].join('\n');
+}
+
+function getScreenSpecificGuidance(screenType: ScreenType): string {
+  switch(screenType) {
+    case 'home':
+      return getVisualImpactGuidance();
+    case 'browse':
+    case 'dashboard':
+      return getEfficiencyGuidance();
+    case 'detail':
+      return getEngagementGuidance();
+    case 'input':
+    case 'compare':
+      return getUsabilityGuidance();
+    default:
+      return getVisualImpactGuidance();
+  }
+}
+
+function getVisualImpactGuidance(): string {
+  return [
+    '✨ VISUAL IMPACT FOCUS (Home Screen):',
+    '- Prioritize memorable first impression and emotional engagement',
+    '- Create a Hero section that dramatically embodies the core metaphor',
+    '- Use bold visual elements that immediately communicate brand essence',
+    '',
+    '🎭 AVAILABLE EXPRESSION TECHNIQUES:',
+    '- **Scroll-driven effects**: Parallax layers, step reveals, sticky storytelling',
+    '- **Advanced typography**: Variable font animations, morphing text, gradient text',
+    '- **Spatial depth**: CSS 3D transforms, masking/clipping (waves, circles), layer blur',
+    '- **Dynamic elements**: Particle fields, custom cursors, magnetic attraction',
+    '- **Light & color**: Environmental glow, blend modes, breathing highlights',
+    '- **Procedural**: Generative backgrounds, noise patterns, organic shapes',
+    '',
+    '🎯 LAYOUT PRIORITIES:',
+    '- Hero section (60-80% viewport) with metaphor embodiment',
+    '- Clear value proposition integrated with visual concept',
+    '- Strong call-to-action that feels part of the metaphor',
+    '- Secondary sections that extend the narrative'
+  ].join('\n');
+}
+
+function getEfficiencyGuidance(): string {
+  return [
+    '🔧 EFFICIENCY FOCUS (Browse/Dashboard):',
+    '- Prioritize information findability and task completion',
+    '- Ensure the metaphor enhances rather than hinders functionality',
+    '- Create clear visual hierarchy and intuitive navigation patterns',
+    '',
+    '⚡ AVAILABLE EXPRESSION TECHNIQUES:',
+    '- **Micro-interactions**: Hover ripples, snap/bounce toggles, loading shimmers',
+    '- **Smart layouts**: Container queries, responsive card grids, anchor positioning',
+    '- **Data visualization**: Animated charts, tooltip delays, filter morphing',
+    '- **Performance**: Skeleton loading, optimistic UI, smooth transitions',
+    '- **Feedback**: Toast notifications, validation states, progress indicators',
+    '',
+    '🗂️ LAYOUT PRIORITIES:',
+    '- Header with search/filters prominently placed',
+    '- Grid or list view with clear item hierarchy',
+    '- Pagination or infinite scroll with loading states',
+    '- Sidebar or secondary navigation if needed',
+    '- Empty states that maintain engagement'
+  ].join('\n');
+}
+
+function getEngagementGuidance(): string {
+  return [
+    '🎪 ENGAGEMENT FOCUS (Detail Screen):',
+    '- Create immersive experience that draws users deeper',
+    '- Use metaphor to enhance content consumption and emotional connection',
+    '- Balance rich visuals with content readability',
+    '',
+    '🌟 AVAILABLE EXPRESSION TECHNIQUES:',
+    '- **Content transitions**: View transitions, layout morphing, element inheritance',
+    '- **Interactive media**: Hover zoom, gesture-based navigation, 3D product views',
+    '- **Storytelling**: Kinetic typography, Lottie animations, scroll-triggered reveals',
+    '- **Spatial interaction**: Device motion effects, cursor trails, magnetic elements',
+    '- **Rich feedback**: Physical UI responses, spring animations, haptic suggestions',
+    '',
+    '📖 LAYOUT PRIORITIES:',
+    '- Compelling header/hero showcasing main content',
+    '- Structured content sections with clear information hierarchy',
+    '- Related content or recommendations seamlessly integrated',
+    '- Action buttons (share, save, purchase) contextually placed',
+    '- Breadcrumb or back navigation that maintains context'
+  ].join('\n');
+}
+
+function getUsabilityGuidance(): string {
+  return [
+    '🛡️ USABILITY FOCUS (Input/Compare):',
+    '- Prioritize clarity, accessibility, and error prevention',
+    '- Apply metaphor subtly to support rather than distract from tasks',
+    '- Ensure excellent form usability and clear comparison logic',
+    '',
+    '🎯 AVAILABLE EXPRESSION TECHNIQUES:',
+    '- **Form enhancement**: Live validation, smooth error states, progress breathing',
+    '- **Feedback systems**: Success confirmations, gentle error recovery, status updates',
+    '- **Accessibility**: Focus indicators, reduced motion alternatives, screen reader support',
+    '- **Trust building**: Professional micro-animations, consistent visual language',
+    '- **Completion support**: Step indicators, auto-save feedback, clear next actions',
+    '',
+    '📋 LAYOUT PRIORITIES:',
+    '- Clear form structure with logical field grouping',
+    '- Prominent labels and helpful placeholder text',
+    '- Error messages positioned for easy scanning',
+    '- Progress indicators for multi-step processes',
+    '- Clear submission/comparison actions with loading states'
   ].join('\n');
 }
 
@@ -204,7 +334,7 @@ export async function POST(request: NextRequest) {
       ],
     };
 
-    const emotionPrompt = getEmotionExtractionPrompt();
+    const emotionPrompt = getEmotionExtractionPrompt(screenType as ScreenType);
     const mediaPart = {
       inlineData: {
         data: base64,
@@ -228,7 +358,7 @@ export async function POST(request: NextRequest) {
     try {
       emotionResult = JSON.parse(emotionText);
       if (!emotionResult.version) {
-        emotionResult.version = '1.0';
+        emotionResult.version = '2.0';
       }
     } catch (parseError) {
       console.error('Emotion JSON parse failed:', parseError);

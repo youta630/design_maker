@@ -1,38 +1,97 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Emotion Extraction v1.0",
-  "description": "Abstract emotional expressions extracted from images",
+  "title": "Associative Concept Extraction v2.0",
+  "description": "Multi-path associative thinking extracted from images, culminating in creative design concepts",
   "type": "object",
   "properties": {
     "version": {
       "type": "string",
-      "const": "1.0"
+      "const": "2.0"
     },
-    "inner_mood": {
-      "type": "string",
-      "minLength": 10,
-      "maxLength": 200,
-      "description": "Poetic expression of the inner emotional atmosphere"
+    "primary_triggers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 50
+      },
+      "minItems": 2,
+      "maxItems": 5,
+      "description": "Key visual elements that trigger associative chains"
     },
-    "visual_texture": {
-      "type": "string", 
-      "minLength": 10,
-      "maxLength": 200,
-      "description": "Description of visual qualities, light, and color feelings"
+    "association_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "trigger": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50,
+            "description": "Starting element for this association chain"
+          },
+          "chain": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 3,
+              "maxLength": 100
+            },
+            "minItems": 2,
+            "maxItems": 5,
+            "description": "Sequential associative steps"
+          },
+          "final_concept": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 150,
+            "description": "Creative concept derived from this association chain"
+          },
+          "conceptual_depth": {
+            "type": "string",
+            "enum": ["surface", "metaphorical", "abstract", "philosophical"],
+            "description": "Level of conceptual abstraction reached"
+          }
+        },
+        "required": ["trigger", "chain", "final_concept", "conceptual_depth"],
+        "additionalProperties": false
+      },
+      "minItems": 2,
+      "maxItems": 4,
+      "description": "Multiple parallel association chains from different triggers"
     },
-    "tempo": {
-      "type": "string",
-      "minLength": 10,
-      "maxLength": 200,
-      "description": "Sense of time flow, rhythm, and movement pace"
-    },
-    "distance_to_user": {
-      "type": "string",
-      "minLength": 10,
-      "maxLength": 200,
-      "description": "Emotional distance and intimacy with the viewer"
+    "selected_concept": {
+      "type": "object",
+      "properties": {
+        "chosen_path": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Index of the selected association path"
+        },
+        "core_metaphor": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 200,
+          "description": "The essential metaphor that will guide UI design"
+        },
+        "emotional_direction": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 100,
+          "description": "Primary emotional feeling this concept should evoke"
+        },
+        "interaction_essence": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 150,
+          "description": "How this metaphor should translate to user interaction feelings"
+        }
+      },
+      "required": ["chosen_path", "core_metaphor", "emotional_direction", "interaction_essence"],
+      "additionalProperties": false,
+      "description": "The final selected concept for UI generation"
     }
   },
-  "required": ["version", "inner_mood", "visual_texture", "tempo", "distance_to_user"],
+  "required": ["version", "primary_triggers", "association_paths", "selected_concept"],
   "additionalProperties": false
 }
