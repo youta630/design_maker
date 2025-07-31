@@ -8,7 +8,8 @@ import { supabase } from '@/lib/supabase/client';
 import type { EmotionExtraction, UIGeneration } from '@/lib/emotion/types';
 
 interface AnalysisResult {
-  id?: string;
+  id: string;
+  imageUrl: string;
   emotion: EmotionExtraction;
   ui: UIGeneration;
   fileName: string;
@@ -115,12 +116,13 @@ export default function AppPage() {
         throw new Error('Authentication required. Please log in again.');
       }
 
-      // Step 1: Extract emotions from image
-      console.log('🎨 Step 1: Extracting emotions...');
+      // Integrated pipeline: Single API call for complete processing
+      console.log('🚀 Starting integrated design generation...');
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('screenType', screenType);
 
-      const emotionResponse = await fetch('/api/emotion/extract', {
+      const response = await fetch('/api/design/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -128,41 +130,20 @@ export default function AppPage() {
         body: formData,
       });
 
-      if (!emotionResponse.ok) {
-        const errorData = await emotionResponse.json();
-        throw new Error(errorData.error || `Emotion extraction failed: ${emotionResponse.status}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Design generation failed: ${response.status}`);
       }
 
-      const emotionData = await emotionResponse.json();
-      console.log('✨ Emotion extracted:', emotionData.emotion);
-
-      // Step 2: Generate UI from emotions
-      console.log('🏗️ Step 2: Generating UI...');
-      const uiResponse = await fetch('/api/ui/generate', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          emotion: emotionData.emotion,
-          screenType: screenType
-        }),
-      });
-
-      if (!uiResponse.ok) {
-        const errorData = await uiResponse.json();
-        throw new Error(errorData.error || `UI generation failed: ${uiResponse.status}`);
-      }
-
-      const uiData = await uiResponse.json();
-      console.log('🎯 UI generated:', uiData.ui);
+      const data = await response.json();
+      console.log('🎉 Complete design generated:', data);
       
-      // Create AnalysisResult with emotion + UI
+      // Create AnalysisResult with complete data including image URL
       const analysisResult: AnalysisResult = {
-        id: uiData.id,
-        emotion: emotionData.emotion,
-        ui: uiData.ui,
+        id: data.id,
+        imageUrl: data.imageUrl,
+        emotion: data.emotion,
+        ui: data.ui,
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type

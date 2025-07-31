@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, createUserContent, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { createClient } from '@/lib/supabase/server';
 import type { UIGeneration, ScreenType } from '@/lib/emotion/types';
-import { validateEmotionExtraction } from '@/lib/emotion/validator';
 import uiGenerationSchema from '@/schemas/ui-generation.schema.json';
 
 export const runtime = 'nodejs';
@@ -97,8 +96,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { emotion, screenType } = body;
 
-    if (!emotion || !validateEmotionExtraction(emotion)) {
-      return NextResponse.json({ error: 'Invalid emotion data provided' }, { status: 400 });
+    if (!emotion || typeof emotion !== 'object') {
+      return NextResponse.json({ error: 'Emotion data is required' }, { status: 400 });
     }
 
     if (!screenType || typeof screenType !== 'string') {
