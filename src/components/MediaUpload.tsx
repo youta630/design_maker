@@ -186,8 +186,14 @@ export default function MediaUpload({
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                       >
-                        <div className="text-sm font-medium">{type.name}</div>
-                        <div className="text-xs opacity-75 mt-1">{type.description}</div>
+                        <div className="flex items-center space-x-2 mb-1">
+                          <div 
+                            className="w-4 h-4 flex-shrink-0"
+                            dangerouslySetInnerHTML={{ __html: type.icon }}
+                          />
+                          <div className="text-sm font-medium">{type.name}</div>
+                        </div>
+                        <div className="text-xs opacity-75">{type.description}</div>
                       </motion.button>
                     ))}
                   </div>
