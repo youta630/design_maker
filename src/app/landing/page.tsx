@@ -8,15 +8,15 @@ import { useScrollProgress } from '@/components/landing/useScrollProgress';
 
 // Animation variants
 const fadeIn = {
-  initial: { opacity: 0, y: 40 },
+  initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }
+  transition: { duration: 0.6, ease: [0.21, 0.47, 0.32, 0.98] }
 };
 
 const staggerContainer = {
   animate: {
     transition: {
-      staggerChildren: 0.15
+      staggerChildren: 0.1
     }
   }
 };
@@ -44,341 +44,378 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <main className="relative min-h-screen bg-white text-black font-mono">
+    <main className="relative min-h-screen bg-gray-950 text-white">
       {/* Premium 3D Rubik's Cube Background */}
       {isClient && (
         <PremiumRubiksCube 
           scrollProgress={scrollProgress}
           sectionIndex={currentSection}
-          className="opacity-20"
+          className="opacity-5"
         />
       )}
 
-      {/* Fixed Google Auth Button */}
-      <div className="fixed top-8 right-8 z-50">
-        <GoogleAuthButton />
-      </div>
+      {/* Fixed Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-950/80 backdrop-blur-md border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 3l7 4v6l-7 4-7-4V7l7-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <span className="font-semibold text-xl text-white">snap2spec</span>
+          </div>
+          <div className="flex items-center space-x-8">
+            <nav className="hidden md:flex space-x-8">
+              <a href="#" className="text-gray-300 hover:text-white transition-colors">Product</a>
+              <a href="#" className="text-gray-300 hover:text-white transition-colors">Developers</a>
+              <a href="#" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
+              <a href="#" className="text-gray-300 hover:text-white transition-colors">Docs</a>
+            </nav>
+            <GoogleAuthButton />
+          </div>
+        </div>
+      </nav>
 
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 pt-20">
         
-        {/* Hero */}
-        <section className="min-h-screen flex items-center justify-center px-8">
-          <div className="max-w-4xl mx-auto text-center">
+        {/* Hero - Supabase Style */}
+        <section className="min-h-screen flex flex-col items-center justify-center px-6 py-32">
+          <div className="max-w-5xl text-center">
             <motion.div
               variants={staggerContainer}
               initial="initial"
               animate="animate"
-              className="space-y-16"
+              className="space-y-12"
             >
+              {/* Announcement Badge */}
+              <motion.div 
+                variants={fadeIn}
+                className="inline-flex items-center px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full text-sm text-green-400"
+              >
+                LW15 ✨ View all the announcements →
+              </motion.div>
+
               <motion.h1 
                 variants={fadeIn}
-                className="text-6xl md:text-8xl font-bold tracking-tight leading-none"
+                className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-tight"
               >
-                snap2spec
+                Build in a weekend
+                <br />
+                <span className="text-green-400">Scale to millions</span>
               </motion.h1>
               
               <motion.div 
                 variants={fadeIn}
-                className="space-y-8"
+                className="space-y-6 max-w-3xl mx-auto"
               >
-                <p className="text-xl md:text-2xl font-light max-w-2xl mx-auto leading-relaxed">
-                  画像一枚から、完璧なUI仕様書を瞬時に生成。
+                <p className="text-xl md:text-2xl text-gray-300 leading-relaxed">
+                  snap2specは画像1枚からUI仕様書を生成するクリエイティブプラットフォーム。
                 </p>
-                <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                  複雑な指示は不要。あなたの感覚を理解し、独自のデザイン言語へと変換する新しいクリエイティブツール。
+                <p className="text-lg text-gray-400 leading-relaxed">
+                  プロジェクトを画像アップロード、AI連想分析、JSON仕様書生成、
+                  そして実装まで、完全なクリエイティブワークフローを提供します。
                 </p>
               </motion.div>
 
               <motion.div 
                 variants={fadeIn}
-                className="pt-8"
+                className="flex flex-col sm:flex-row gap-4 justify-center pt-8"
               >
-                <div className="inline-block px-8 py-4 border border-green-500 text-green-500 hover:bg-green-500 hover:text-white transition-all duration-300 cursor-pointer font-semibold">
-                  今すぐ体験する
-                </div>
+                <button className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-medium transition-all duration-200">
+                  Start your project
+                </button>
+                <button className="border border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white px-8 py-4 rounded-lg font-medium transition-all duration-200">
+                  Request a demo
+                </button>
               </motion.div>
             </motion.div>
           </div>
-        </section>
 
-        {/* Problem */}
-        <section className="min-h-screen flex items-center justify-center px-8 bg-gray-50">
-          <div className="max-w-4xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 1.2 }}
-              viewport={{ once: true }}
-              className="space-y-24"
-            >
-              <h2 className="text-4xl md:text-6xl font-bold text-center">
-                現在の限界
-              </h2>
-              
-              <div className="grid md:grid-cols-3 gap-12">
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-bold">指示の複雑さ</h3>
-                  <p className="text-gray-700 leading-relaxed">
-                    「モダンで直感的な」「ユーザビリティを考慮した」「レスポンシブな」
-                    <br /><br />
-                    毎回同じような抽象的な指示を考案し、それでも意図とは異なる結果が返ってくる。
-                    デザイナーがプロンプトエンジニアになってしまう現状。
-                  </p>
-                </div>
-                
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-bold">パターンの限界</h3>
-                  <p className="text-gray-700 leading-relaxed">
-                    既存AIツールは学習データに基づく「よくあるパターン」を出力。
-                    <br /><br />
-                    どのプロジェクトも似たような見た目になり、真の独創性が生まれない。
-                    クライアントごとの個性や差別化が困難。
-                  </p>
-                </div>
-                
-                <div className="space-y-6">
-                  <h3 className="text-2xl font-bold">感覚の言語化</h3>
-                  <p className="text-gray-700 leading-relaxed">
-                    頭の中にある漠然としたイメージ、感覚的な好み、ブランドの雰囲気。
-                    <br /><br />
-                    これらの微妙なニュアンスを言葉で表現するのは極めて困難で、
-                    結果として意図しないデザインが生成される。
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+          {/* Trusted by logos */}
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1 }}
+            className="flex items-center justify-center space-x-12 mt-24 opacity-50"
+          >
+            <div className="text-gray-500 font-semibold">Resend</div>
+            <div className="text-gray-500 font-semibold">Loops</div>
+            <div className="text-gray-500 font-semibold">Mobbin</div>
+            <div className="text-gray-500 font-semibold">gopuff</div>
+            <div className="text-gray-500 font-semibold">Chatbase</div>
+          </motion.div>
+
+          <div className="text-center text-gray-500 text-sm mt-8">
+            Trusted by fast-growing companies worldwide
           </div>
         </section>
 
-        {/* Solution */}
-        <section className="min-h-screen flex items-center justify-center px-8">
-          <div className="max-w-4xl mx-auto">
+        {/* Features - Large Cards */}
+        <section className="max-w-7xl mx-auto px-6 py-32">
+          <div className="grid lg:grid-cols-3 gap-8">
+            
+            {/* Image Upload Feature */}
             <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 1.2 }}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
               viewport={{ once: true }}
-              className="space-y-24"
+              className="bg-gray-900 border border-gray-800 rounded-xl p-8 space-y-6"
             >
-              <h2 className="text-4xl md:text-6xl font-bold text-center">
-                snap2specの価値
-              </h2>
+              <div className="flex items-center space-x-3">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <h3 className="text-xl font-semibold text-white">画像アップロード</h3>
+              </div>
               
-              <div className="space-y-16">
-                <div className="border-l-4 border-green-500 pl-8">
-                  <h3 className="text-2xl font-bold mb-4">画像一枚で完結</h3>
-                  <p className="text-gray-700 leading-relaxed text-lg">
-                    日常の写真、風景、アート作品、オブジェクト。
-                    どんな画像からでも、その背後にある感覚、雰囲気、エネルギーを読み取り、
-                    あなた独自のデザイン言語として翻訳します。
-                    言語化の手間は一切不要。
-                  </p>
-                </div>
-                
-                <div className="border-l-4 border-green-500 pl-8">
-                  <h3 className="text-2xl font-bold mb-4">人間の思考を再現</h3>
-                  <p className="text-gray-700 leading-relaxed text-lg">
-                    リンゴ → 重力 → ニュートン → 発見 → 革新
-                    <br /><br />
-                    人間特有の連想の連鎖を再現し、複数の思考パスから最も創造的で
-                    適切なコンセプトを選択。テンプレートではない、
-                    真に独創的なデザインアイデアが生まれます。
-                  </p>
-                </div>
-                
-                <div className="border-l-4 border-green-500 pl-8">
-                  <h3 className="text-2xl font-bold mb-4">即座に実装可能</h3>
-                  <p className="text-gray-700 leading-relaxed text-lg">
-                    生成されるのは詳細なJSON仕様書。
-                    カラーパレット、タイポグラフィ、レイアウト、インタラクションまで完全定義。
-                    v0、Cursor、Claude等のコーディングエージェントに
-                    そのまま渡すだけで実装完了です。
-                  </p>
+              <p className="text-gray-400 leading-relaxed">
+                どんな画像からでも直接感覚を読み取り、
+                <span className="text-white font-medium">独自のデザイン言語</span>として翻訳。
+                言語化の必要は一切ありません。
+              </p>
+
+              {/* Visual representation */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div className="w-full h-32 bg-gradient-to-br from-green-500/20 to-blue-500/20 rounded-lg border-2 border-dashed border-gray-600 flex items-center justify-center">
+                  <div className="text-center">
+                    <svg className="w-8 h-8 text-gray-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <div className="text-sm text-gray-500">Drop image here</div>
+                  </div>
                 </div>
               </div>
+
+              <div className="flex items-center space-x-2 text-sm">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-gray-400">100% portable</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-gray-400">Direct interpretation</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-gray-400">No prompts needed</span>
+              </div>
             </motion.div>
+
+            {/* AI Analysis Feature */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              viewport={{ once: true }}
+              className="bg-gray-900 border border-gray-800 rounded-xl p-8 space-y-6"
+            >
+              <div className="flex items-center space-x-3">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <h3 className="text-xl font-semibold text-white">AI連想分析</h3>
+              </div>
+              
+              <p className="text-gray-400 leading-relaxed">
+                人間の思考パターンを再現し、
+                <span className="text-white font-medium">複数の連想パス</span>から
+                最も創造的なコンセプトを選択します。
+              </p>
+
+              {/* Terminal-like visualization */}
+              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 font-mono text-sm">
+                <div className="text-green-400 mb-2">$ snap2spec analyze</div>
+                <div className="text-gray-500 mb-1">Generating association paths...</div>
+                <div className="text-gray-300">海 → 無限 → 展開 → 可能性</div>
+                <div className="text-gray-300">→ 革新 → デザイン</div>
+                <div className="text-green-400 mt-2">✓ Analysis complete</div>
+              </div>
+
+              <p className="text-gray-500 text-sm">
+                Build multilayer experiences with real-time data synchronization.
+              </p>
+            </motion.div>
+
+            {/* JSON Output Feature */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="bg-gray-900 border border-gray-800 rounded-xl p-8 space-y-6"
+            >
+              <div className="flex items-center space-x-3">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+                <h3 className="text-xl font-semibold text-white">JSON仕様書生成</h3>
+              </div>
+              
+              <p className="text-gray-400 leading-relaxed">
+                実装レベルの詳細仕様書を自動生成。
+                <span className="text-white font-medium">即座にReady-to-use</span>で
+                コーディングエージェントに直接渡せます。
+              </p>
+
+              {/* Code preview */}
+              <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex space-x-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                  <div className="text-xs text-gray-500">design-spec.json</div>
+                </div>
+                <div className="font-mono text-xs text-gray-300 space-y-1">
+                  <div>{"{"}</div>
+                  <div className="pl-4">&ldquo;colors&rdquo;: {"//"} countries</div>
+                  <div className="pl-4">&ldquo;typography&rdquo;: {"//"} continents</div>
+                  <div className="pl-4">&ldquo;layout&rdquo;: {"//"} cities</div>
+                  <div className="pl-4">&ldquo;components&rdquo;: {"//"} states</div>
+                  <div>{"}"}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 text-sm">
+                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-gray-400">OpenAI compatible</span>
+              </div>
+            </motion.div>
+
           </div>
         </section>
 
-        {/* Process */}
-        <section className="min-h-screen flex items-center justify-center px-8 bg-gray-50">
-          <div className="max-w-4xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 1.2 }}
-              viewport={{ once: true }}
-              className="space-y-24"
-            >
-              <h2 className="text-4xl md:text-6xl font-bold text-center">
-                使用方法
+        {/* Customer Stories - Logo Flow */}
+        <section className="py-32 bg-gray-900/50">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <div className="text-sm text-gray-500 uppercase tracking-wide mb-4">CUSTOMER STORIES</div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+                Trusted by the world&rsquo;s most
+                <br />
+                innovative companies.
               </h2>
-              
-              <div className="space-y-20">
-                <div className="text-center space-y-8">
-                  <div className="w-20 h-20 mx-auto border-4 border-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-bold">1</span>
-                  </div>
-                  <h3 className="text-2xl font-bold">画像をドロップ</h3>
-                  <p className="text-gray-700 max-w-2xl mx-auto leading-relaxed">
-                    日常の写真、アート作品、風景、オブジェクト。何でも構いません。
-                    AIがその画像から色彩、形状、雰囲気、感情を読み取り、
-                    あなただけのデザイン言語として解釈します。
-                  </p>
-                </div>
-                
-                <div className="text-center space-y-8">
-                  <div className="w-20 h-20 mx-auto border-4 border-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-bold">2</span>
-                  </div>
-                  <h3 className="text-2xl font-bold">AI連想分析</h3>
-                  <p className="text-gray-700 max-w-2xl mx-auto leading-relaxed">
-                    画像から複数の連想パスを生成し、各パスを評価。
-                    最も創造的でスクリーンタイプに適切なコンセプトを選択。
-                    この過程で、テンプレートにはない独創的なアイデアが生まれます。
-                  </p>
-                </div>
-                
-                <div className="text-center space-y-8">
-                  <div className="w-20 h-20 mx-auto border-4 border-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-bold">3</span>
-                  </div>
-                  <h3 className="text-2xl font-bold">JSON仕様書出力</h3>
-                  <p className="text-gray-700 max-w-2xl mx-auto leading-relaxed">
-                    選択されたコンセプトをベースに、実装レベルの詳細仕様書を生成。
-                    コーディングエージェントにそのまま渡すだけで、
-                    あなたの感覚を反映したUIが完成します。
-                  </p>
-                </div>
+              <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+                See how snap2spec empowers companies of all sizes to accelerate
+                their growth and streamline their work.
+              </p>
+              <div className="flex justify-center space-x-4 mt-8">
+                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                  View all stories
+                </button>
+                <button className="border border-gray-600 hover:border-gray-500 text-gray-300 px-6 py-2 rounded-lg text-sm font-medium transition-colors">
+                  View Events
+                </button>
               </div>
-            </motion.div>
-          </div>
-        </section>
+            </div>
 
-        {/* Before/After */}
-        <section className="min-h-screen flex items-center justify-center px-8">
-          <div className="max-w-5xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 1.2 }}
-              viewport={{ once: true }}
-              className="space-y-24"
-            >
-              <h2 className="text-4xl md:text-6xl font-bold text-center">
-                実際の違い
-              </h2>
-              
-              <div className="grid md:grid-cols-2 gap-16">
-                <div className="space-y-8">
-                  <h3 className="text-2xl font-bold text-center">従来のアプローチ</h3>
-                  <div className="border border-gray-300 rounded-lg p-8 space-y-6">
-                    <div className="space-y-4">
-                      <div className="text-sm text-gray-500">入力例:</div>
-                      <div className="font-mono text-sm bg-gray-100 p-4 rounded">
-                        モダンでクリーンなデザインで、ユーザビリティを考慮したレスポンシブなレイアウトで...
-                      </div>
-                    </div>
-                    <div className="text-center text-gray-400">↓</div>
-                    <div className="bg-gray-100 rounded-lg p-6 text-center">
-                      <div className="text-gray-500">テンプレート的なデザイン</div>
-                      <div className="text-xs text-gray-400 mt-2">どこでも見たことのある無難なUI</div>
-                    </div>
-                  </div>
+            {/* Horizontal scrolling cards */}
+            <div className="relative">
+              <div className="flex overflow-x-auto space-x-6 pb-6 scrollbar-hide">
+                {/* Card 1 */}
+                <div className="flex-shrink-0 w-80 bg-gray-900 border border-gray-800 rounded-xl p-8">
+                  <div className="text-2xl font-bold text-white mb-4">SHOTGUN</div>
+                  <div className="h-40 bg-gray-800 rounded-lg mb-6"></div>
+                  <p className="text-gray-400 text-sm">
+                    使用例追加予定。実際のプロジェクトでどのように画像から
+                    独創的なUI仕様書が生成されるかをご紹介します。
+                  </p>
                 </div>
 
-                <div className="space-y-8">
-                  <h3 className="text-2xl font-bold text-center">snap2spec</h3>
-                  <div className="border border-green-500 rounded-lg p-8 space-y-6">
-                    <div className="space-y-4">
-                      <div className="text-sm text-gray-500">入力例:</div>
-                      <div className="w-full h-20 bg-gradient-to-r from-blue-200 to-green-200 rounded border-2 border-dashed border-green-300 flex items-center justify-center">
-                        <span className="text-sm text-green-700">画像1枚をドロップ</span>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm text-green-600">AI連想:</div>
-                      <div className="font-mono text-xs text-green-600 bg-green-50 p-2 rounded my-2">
-                        海 → 無限 → 展開 → 可能性 → 革新
-                      </div>
-                    </div>
-                    <div className="bg-green-100 rounded-lg p-6 text-center">
-                      <div className="text-green-700 font-semibold">独創的なデザイン仕様</div>
-                      <div className="text-xs text-green-600 mt-2">あなただけのオリジナルUI</div>
-                    </div>
+                {/* Card 2 */}
+                <div className="flex-shrink-0 w-80 bg-gray-900 border border-gray-800 rounded-xl p-8">
+                  <div className="text-2xl font-bold text-white mb-4">Chatbase</div>
+                  <div className="h-40 bg-gray-800 rounded-lg mb-6"></div>
+                  <p className="text-gray-400 text-sm">
+                    使用例追加予定。AI連想システムがどのように
+                    従来とは異なるクリエイティブなアプローチを実現するかを示します。
+                  </p>
+                </div>
+
+                {/* Card 3 */}
+                <div className="flex-shrink-0 w-80 bg-gray-900 border border-gray-800 rounded-xl p-8">
+                  <div className="text-2xl font-bold text-white mb-4">Mobbin</div>
+                  <div className="h-40 bg-gray-800 rounded-lg mb-6"></div>
+                  <p className="text-gray-400 text-sm">
+                    使用例追加予定。JSON仕様書から実装まで、
+                    完全なワークフローの実例をご覧いただけます。
+                  </p>
+                </div>
+
+                {/* Card 4 */}
+                <div className="flex-shrink-0 w-80 bg-gray-900 border border-gray-800 rounded-xl p-8">
+                  <div className="text-2xl font-bold text-white mb-4">Pebblely</div>
+                  <div className="h-40 bg-gray-800 rounded-lg mb-6 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
+                  <p className="text-gray-400 text-sm">
+                    Scaling securely: one million users in 7 months
+                    protected with snap2spec Auth
+                  </p>
                 </div>
               </div>
-              
-              <div className="grid md:grid-cols-3 gap-8 pt-16 text-center">
-                <div>
-                  <div className="text-4xl font-bold text-green-500 mb-2">95%</div>
-                  <div className="text-gray-600">作業時間短縮</div>
-                </div>
-                <div>
-                  <div className="text-4xl font-bold text-green-500 mb-2">∞</div>
-                  <div className="text-gray-600">デザインパターン</div>
-                </div>
-                <div>
-                  <div className="text-4xl font-bold text-green-500 mb-2">10秒</div>
-                  <div className="text-gray-600">画像から仕様書まで</div>
-                </div>
-              </div>
-            </motion.div>
+            </div>
           </div>
         </section>
 
         {/* CTA */}
-        <section className="min-h-screen flex items-center justify-center px-8 bg-black text-white">
-          <div className="max-w-4xl mx-auto text-center">
+        <section className="py-32">
+          <div className="max-w-4xl mx-auto px-6 text-center">
             <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 1.2 }}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
               viewport={{ once: true }}
-              className="space-y-16"
+              className="space-y-8"
             >
-              <h2 className="text-4xl md:text-6xl font-bold">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 あなたの感覚を
                 <br />
-                デザインに
+                デザインに変換しませんか？
               </h2>
               
-              <div className="space-y-8">
-                <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                  無料で始められます。
-                  クレジットカード不要、制限なし。
-                </p>
-                
-                <div className="grid md:grid-cols-3 gap-8 text-sm">
-                  <div className="border border-gray-700 rounded-lg p-6">
-                    <div className="font-semibold text-green-400 mb-2">無料アカウント</div>
-                    <div className="text-gray-400">登録のみで即座に利用開始</div>
-                  </div>
-                  <div className="border border-gray-700 rounded-lg p-6">
-                    <div className="font-semibold text-green-400 mb-2">制限なし</div>
-                    <div className="text-gray-400">生成回数無制限</div>
-                  </div>
-                  <div className="border border-gray-700 rounded-lg p-6">
-                    <div className="font-semibold text-green-400 mb-2">即座に実装</div>
-                    <div className="text-gray-400">JSONを直接エージェントに</div>
-                  </div>
-                </div>
-              </div>
+              <p className="text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                無料で始められます。クレジットカード不要、制限なし。
+                今すぐあなたのクリエイティブワークフローを変革してください。
+              </p>
 
-              <div className="pt-8">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-block px-12 py-6 bg-green-500 text-black font-bold text-lg hover:bg-green-400 transition-all duration-300"
-                >
-                  今すぐ体験する
-                </motion.div>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+                <button className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-medium transition-all duration-200">
+                  Start your project
+                </button>
+                <button className="border border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white px-8 py-4 rounded-lg font-medium transition-all duration-200">
+                  Request a demo
+                </button>
               </div>
             </motion.div>
           </div>
         </section>
+
+        {/* Footer */}
+        <footer className="border-t border-gray-800 py-16">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <div className="flex items-center space-x-2 mb-4 md:mb-0">
+                <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 3l7 4v6l-7 4-7-4V7l7-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className="font-semibold text-xl text-white">snap2spec</span>
+              </div>
+              <div className="text-sm text-gray-500">
+                © 2024 snap2spec. All rights reserved.
+              </div>
+            </div>
+          </div>
+        </footer>
 
       </div>
     </main>
