@@ -164,10 +164,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🚀 Starting integrated design generation pipeline...');
-
+   
     // Step 1: Upload image to Supabase Storage
-    console.log('📤 Step 1: Uploading image to storage...');
     const uploadResult = await uploadFile(file, user.id);
     
     if (uploadResult.error) {
@@ -177,10 +175,10 @@ export async function POST(request: NextRequest) {
     uploadedImagePath = uploadResult.path;
     const imageUrl = uploadResult.publicUrl;
     
-    console.log('✅ Image uploaded successfully:', imageUrl);
+   
 
     // Step 2: Extract emotions from image
-    console.log('🎨 Step 2: Extracting emotions...');
+   
     const bytes = await file.arrayBuffer();
     const inputBuffer = Buffer.from(bytes);
     const base64 = inputBuffer.toString('base64');
@@ -308,10 +306,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🎯 UI generated:', uiResult);
+   
 
     // Step 4: Save complete result to database
-    console.log('💾 Step 4: Saving to database...');
     const completeSpec = {
       emotion: emotionResult,
       ui: uiResult
@@ -321,12 +318,10 @@ export async function POST(request: NextRequest) {
       .from('specs')
       .insert({
         user_id: user.id,
-        modality: 'ui-generation', // Updated to match existing constraint
         source_meta: {
           fileName: file.name,
           fileSize: file.size,
           mimeType: file.type,
-          screenType: screenType,
           imageUrl: imageUrl
         },
         spec: completeSpec
@@ -344,7 +339,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 5: Increment usage count (only on full success)
-    console.log('📊 Step 5: Updating usage count...');
+    
     try {
       const { error: incrementError } = await supabase
         .rpc('increment_monthly_usage', {
@@ -360,7 +355,7 @@ export async function POST(request: NextRequest) {
       console.error('Usage count error (non-critical):', usageError);
     }
 
-    console.log('🎉 Pipeline completed successfully!');
+   
 
     // Return complete result
     return NextResponse.json({

@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
       .from('specs')
       .select(`
         id,
-        modality,
         source_meta,
         spec,
         created_at
@@ -76,11 +75,10 @@ export async function GET(request: NextRequest) {
           id: item.id,
           fileName,
           fileSize: (sourceMeta?.fileSize as number) || 0,
-          mimeType: (sourceMeta?.mimeType as string) || `${item.modality}/*`,
+          mimeType: (sourceMeta?.mimeType as string) || 'application/json',
           spec: item.spec as GenericSpec, // JSON直接返却
           createdAt: item.created_at,
-          imageUrl, // 実際の画像URL
-          modality: item.modality
+          imageUrl // 実際の画像URL
         };
       } catch (error) {
         console.error('Failed to process history item:', item.id, error);
@@ -91,8 +89,7 @@ export async function GET(request: NextRequest) {
           mimeType: 'unknown',
           spec: null,
           createdAt: item.created_at,
-          imageUrl: undefined,
-          modality: item.modality
+          imageUrl: undefined
         };
       }
     });

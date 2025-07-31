@@ -25,22 +25,6 @@ function getComponentCount(spec: GenericSpec | null): number {
   return 0;
 }
 
-// Helper function to get system type
-function getSystemType(spec: GenericSpec | null): string {
-  if (!spec) return 'Unknown';
-  
-  // New emotion-driven system
-  if (spec.emotion && spec.ui) {
-    return 'Emotion';
-  }
-  
-  // Old MEDS system
-  if (spec.version && spec.foundations) {
-    return 'MEDS';
-  }
-  
-  return 'Unknown';
-}
 
 interface HistoryItem {
   id: string;
@@ -50,7 +34,6 @@ interface HistoryItem {
   spec: GenericSpec | null;
   createdAt: string;
   imageUrl?: string;
-  modality: string;
 }
 
 interface HistoryCardProps {
@@ -118,10 +101,6 @@ export default function HistoryCard({ item, onView, onDelete }: HistoryCardProps
             </div>
           )}
           
-          {/* System Type Badge */}
-          <div className="absolute top-1 right-1 bg-black text-white text-xs px-1.5 py-0.5 rounded font-medium">
-            {getSystemType(item.spec)}
-          </div>
         </div>
 
         {/* Content */}

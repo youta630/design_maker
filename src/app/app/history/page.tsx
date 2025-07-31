@@ -16,7 +16,6 @@ interface HistoryItem {
   spec: GenericSpec | null;
   createdAt: string;
   imageUrl?: string;
-  modality: string;
 }
 
 export default function HistoryPage() {
