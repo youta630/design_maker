@@ -2,7 +2,7 @@
 
 import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, PerspectiveCamera, OrbitControls } from '@react-three/drei';
+// Removed unused imports
 import * as THREE from 'three';
 
 interface RubiksCubeProps {
@@ -77,7 +77,6 @@ function RubiksCube({ scrollProgress, sectionIndex }: { scrollProgress: number; 
 
     // スクロールベースの回転とコロコロ動き
     const scrollRotation = scrollProgress * Math.PI * 4;
-    const rollSpeed = scrollProgress * 20;
 
     // メインの回転アニメーション
     group.rotation.x = scrollRotation * 0.7 + Math.sin(time * 0.5) * 0.1;
@@ -139,7 +138,7 @@ function RubiksCube({ scrollProgress, sectionIndex }: { scrollProgress: number; 
       {/* 中央のコア部分（光るエフェクト） */}
       <mesh position={[0, 0, 0]}>
         <sphereGeometry args={[0.3, 16, 16]} />
-        <meshBasicMaterial
+        <meshStandardMaterial
           color={colors.primary}
           transparent
           opacity={0.6}

@@ -346,7 +346,7 @@ export default function LandingPage() {
                     <div className="bg-white rounded-lg p-4 border border-red-100">
                       <div className="text-sm text-gray-600 mb-2">プロンプト例：</div>
                       <div className="text-xs text-red-700 font-mono bg-red-50 p-2 rounded">
-                        "モダンでクリーンなデザインで、ユーザビリティを考慮したレスポンシブなレイアウトで..."
+                        &ldquo;モダンでクリーンなデザインで、ユーザビリティを考慮したレスポンシブなレイアウトで...&rdquo;
                       </div>
                     </div>
                     <div className="text-center text-sm text-gray-500">↓ 結果</div>
@@ -370,7 +370,7 @@ export default function LandingPage() {
                     <div className="text-center">
                       <div className="text-xs text-gray-500">↓ AI連想分析</div>
                       <div className="text-xs text-green-600 font-mono bg-green-50 p-2 rounded my-2">
-                        "海 → 無限 → 展開 → 可能性 → 革新"
+                        &ldquo;海 → 無限 → 展開 → 可能性 → 革新&rdquo;
                       </div>
                     </div>
                     <div className="bg-green-100 rounded-lg p-4 text-center">
