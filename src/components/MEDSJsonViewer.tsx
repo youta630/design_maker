@@ -75,13 +75,13 @@ export default function MEDSJsonViewer({
   return (
     <div className="w-full h-full flex flex-col bg-white border border-black overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-black p-4 flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <div>
+      <div className="bg-white border-b border-black p-3 lg:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 min-w-0 flex-1">
+          <div className="min-w-0">
             <div>
-              <h2 className="text-lg font-semibold text-black">Generated Specification</h2>
+              <h2 className="text-base lg:text-lg font-semibold text-black">Generated Specification</h2>
               {fileName && (
-                <p className="text-sm text-black">
+                <p className="text-xs lg:text-sm text-black truncate">
                   {fileName} {fileSize && `(${formatFileSize(fileSize)})`}
                 </p>
               )}
@@ -89,7 +89,7 @@ export default function MEDSJsonViewer({
           </div>
           
           {/* Validation Badge */}
-          <div className={`px-3 py-1 border text-xs font-medium ${
+          <div className={`px-2 lg:px-3 py-1 border text-xs font-medium self-start sm:self-auto ${
             validationResult.ok 
               ? 'border-black bg-white text-black' 
               : 'border-black bg-black text-white'
@@ -98,12 +98,12 @@ export default function MEDSJsonViewer({
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-shrink-0">
           {/* Copy button */}
           <button
             onClick={handleCopyAll}
             className={`
-              px-4 py-2 border text-sm font-medium transition-all duration-200 flex items-center space-x-2
+              px-3 lg:px-4 py-1.5 lg:py-2 border text-xs lg:text-sm font-medium transition-all duration-200 flex items-center space-x-2 whitespace-nowrap
               ${copied 
                 ? 'border-black bg-white text-black' 
                 : 'border-black bg-black text-white hover:bg-white hover:text-black'
@@ -116,7 +116,7 @@ export default function MEDSJsonViewer({
       </div>
 
       {/* JSON Content */}
-      <div className="flex-1 overflow-auto p-6 bg-white">
+      <div className="flex-1 overflow-auto p-3 lg:p-6 bg-white">
         <div className="bg-white border border-black overflow-hidden">
           <JsonView
             value={displaySpec}

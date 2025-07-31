@@ -189,7 +189,7 @@ export default function AppPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-gray-200 px-6 py-4">
+      <header className="border-b border-gray-200 px-4 lg:px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -230,57 +230,61 @@ export default function AppPage() {
             </svg>
           </div>
           
-          <div className="flex items-center space-x-3">
-            {/* Usage Counter & Subscribe Button (Coming Soon) */}
-            <div className="flex items-center space-x-3">
-              {/* Monthly Usage Counter */}
-              <div className="px-3 py-2 bg-gray-100 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 7h12v9a1 1 0 01-1 1H5a1 1 0 01-1-1V7z" clipRule="evenodd" />
-                  </svg>
-                  <span className="text-sm font-medium text-gray-700">
-                    {usageCount}/{monthlyLimit} this month
-                  </span>
-                </div>
+          <div className="flex items-center space-x-2 lg:space-x-3">
+            {/* Monthly Usage Counter */}
+            <div className="hidden sm:block px-2 lg:px-3 py-1.5 lg:py-2 bg-gray-100 rounded-lg">
+              <div className="flex items-center space-x-1 lg:space-x-2">
+                <svg className="w-3 h-3 lg:w-4 lg:h-4 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 7h12v9a1 1 0 01-1 1H5a1 1 0 01-1-1V7z" clipRule="evenodd" />
+                </svg>
+                <span className="text-xs lg:text-sm font-medium text-gray-700 whitespace-nowrap">
+                  {usageCount}/{monthlyLimit}
+                </span>
               </div>
-              
+            </div>
+            
+            {/* Mobile Usage Indicator */}
+            <div className="sm:hidden px-2 py-1.5 bg-gray-100 rounded-lg">
+              <span className="text-xs font-medium text-gray-700">
+                {usageCount}/{monthlyLimit}
+              </span>
             </div>
             
             {/* History Button */}
             <Link 
               href="/app/history" 
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 lg:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               title="View History"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </Link>
-            
           </div>
         </div>
       </header>
 
-      <div className="flex min-h-[calc(100vh-73px)]">
+      <div className="flex flex-col lg:flex-row min-h-[calc(100vh-73px)]">
         {/* Left Panel - Input */}
-        <div className={`border-r border-gray-200 p-6 overflow-y-auto ${
-          result ? 'w-full max-w-xs' : 'w-full max-w-lg'
+        <div className={`lg:border-r border-gray-200 border-b lg:border-b-0 p-4 lg:p-6 overflow-y-auto ${
+          result 
+            ? 'w-full lg:w-full lg:max-w-xs' 
+            : 'w-full lg:w-full lg:max-w-lg'
         }`}>
           <div className="flex flex-col">
             {/* ヘッダー部分 - 解析後は非表示 */}
             {!result && (
-              <div className="mb-6">
-                <h2 className="text-lg font-medium text-gray-900 mb-2">
+              <div className="mb-4 lg:mb-6">
+                <h2 className="text-base lg:text-lg font-medium text-gray-900 mb-2">
                   Upload Design Media
                 </h2>
                 <p className="text-sm text-gray-600">
-                  Upload your UI design image or video to generate specifications
+                  Upload your UI design image to generate specifications
                 </p>
               </div>
             )}
 
-            <div className={result ? "" : "mb-6"}>
+            <div className={result ? "" : "mb-4 lg:mb-6"}>
               <MediaUpload 
                 onMediaUpload={handleMediaUpload}
                 isLoading={isLoading}
@@ -314,20 +318,20 @@ export default function AppPage() {
 
         {/* Right Panel - Output */}
         {result && (
-          <div className="flex-1 p-6 overflow-y-auto">
+          <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
             <div className="flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-medium text-gray-900">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 lg:mb-6 gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base lg:text-lg font-medium text-gray-900">
                     Generated Specification
                   </h2>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 truncate">
                     {result.fileName}
                   </p>
                 </div>
                 <button
                   onClick={handleReset}
-                  className="px-4 py-2 text-sm font-medium text-white bg-black hover:bg-gray-800 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-white bg-black hover:bg-gray-800 rounded-lg transition-colors whitespace-nowrap"
                 >
                   New Analysis
                 </button>

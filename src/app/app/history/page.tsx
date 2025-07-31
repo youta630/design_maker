@@ -106,14 +106,14 @@ export default function HistoryPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        <header className="border-b border-gray-200 px-6 py-4">
+        <header className="border-b border-gray-200 px-4 lg:px-6 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">History</h1>
+            <h1 className="text-lg lg:text-xl font-semibold text-gray-900">History</h1>
             <Link 
               href="/app" 
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 lg:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </Link>
@@ -131,25 +131,25 @@ export default function HistoryPage() {
     return (
       <div className="min-h-screen bg-white">
         {/* Header */}
-        <header className="border-b border-gray-200 px-6 py-4">
+        <header className="border-b border-gray-200 px-4 lg:px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 lg:space-x-4 min-w-0 flex-1">
               <button
                 onClick={handleBackToList}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 lg:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                 title="Back to History"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-base lg:text-xl font-semibold text-gray-900 truncate">
                 {selectedItem.fileName}
               </h1>
             </div>
             <Link 
               href="/app" 
-              className="flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center space-x-1 lg:space-x-2 p-1.5 lg:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
               title="Back to App"
             >
               <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
@@ -173,7 +173,7 @@ export default function HistoryPage() {
         </header>
 
         {/* Full Width JSON Viewer */}
-        <div className="p-6 h-full">
+        <div className="p-4 lg:p-6 h-full">
           {selectedItem.spec ? (
             <MEDSJsonViewer
               spec={selectedItem.spec}
@@ -198,22 +198,22 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-gray-200 px-6 py-4">
+      <header className="border-b border-gray-200 px-4 lg:px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-900">History</h1>
+          <h1 className="text-lg lg:text-xl font-semibold text-gray-900">History</h1>
           <Link 
             href="/app" 
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 lg:p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             title="Back to App"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </Link>
         </div>
       </header>
 
-      <div className="p-6">
+      <div className="p-4 lg:p-6">
         {history.length === 0 ? (
           <div className="text-center py-12">
             <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -229,7 +229,7 @@ export default function HistoryPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
             {history.map((item) => (
               <HistoryCard
                 key={item.id}

@@ -71,7 +71,7 @@ export default function HistoryCard({ item, onView, onDelete }: HistoryCardProps
     >
       <div className="flex">
         {/* Image Preview */}
-        <div className="w-32 h-24 flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center relative rounded-l-lg">
+        <div className="w-24 sm:w-32 h-18 sm:h-24 flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center relative rounded-l-lg">
           {isImage && item.imageUrl && !imageLoadFailed ? (
             <Image 
               src={item.imageUrl} 
@@ -104,19 +104,19 @@ export default function HistoryCard({ item, onView, onDelete }: HistoryCardProps
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-3 sm:p-4">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-gray-900 truncate mb-1">
+              <h3 className="text-xs sm:text-sm font-medium text-gray-900 truncate mb-1">
                 {item.fileName}
               </h3>
               
-              <div className="flex items-center text-xs text-gray-500 space-x-2 mb-2">
-                <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded">
+              <div className="flex items-center text-xs text-gray-500 space-x-1 sm:space-x-2 mb-2">
+                <span className="font-mono bg-gray-100 px-1 sm:px-1.5 py-0.5 rounded text-xs">
                   {item.mimeType}
                 </span>
-                <span>•</span>
-                <span>{formatFileSize(item.fileSize)}</span>
+                <span className="hidden sm:inline">•</span>
+                <span className="hidden sm:inline">{formatFileSize(item.fileSize)}</span>
               </div>
               
               <p className="text-xs text-gray-600 line-clamp-2">

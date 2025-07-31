@@ -140,21 +140,22 @@ console.log(spec.markdown);
     <main ref={containerRef} className="relative">
       {/* START NOW button - shows only on READY section */}
       {currentSection === 4 && (
-        <div style={{ position: 'fixed', bottom: '120px', left: '50%', transform: 'translateX(-50%)', zIndex: 99999 }}>
+        <div style={{ position: 'fixed', bottom: '80px', left: '50%', transform: 'translateX(-50%)', zIndex: 99999 }}>
           <GoogleAuthButton 
-            className="px-16 py-6 bg-white text-black text-xl font-bold hover:bg-gray-100 shadow-2xl border border-gray-300"
+            className="px-6 sm:px-12 lg:px-16 py-3 sm:py-4 lg:py-6 bg-white text-black text-base sm:text-lg lg:text-xl font-bold hover:bg-gray-100 shadow-2xl border border-gray-300"
             redirectTo="/app"
           >
-            Start your free trial
+            <span className="hidden sm:inline">Start your free trial</span>
+            <span className="sm:hidden">Start free trial</span>
           </GoogleAuthButton>
         </div>
       )}
       
       {/* Login button in top right */}
-      <div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 99999 }}>
+      <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 99999 }}>
         <GoogleAuthButton 
           redirectTo="/app" 
-          className={`px-6 py-3 text-sm ${
+          className={`px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm ${
             currentSection === 4 
               ? 'bg-white border-2 border-white text-black hover:bg-gray-100' 
               : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
@@ -206,14 +207,14 @@ console.log(spec.markdown);
 
       {/* Main content area - fixed position */}
       <div className="fixed inset-0 z-20 flex items-center justify-center">
-        <div className="max-w-7xl mx-auto px-16 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 w-full">
           
           {/* Hero Section */}
           {currentSection === 0 && (
             <div className="flex items-center justify-center w-full h-full relative">
               
-              {/* 3D Background */}
-              <div className="absolute inset-0 z-0 opacity-20">
+              {/* 3D Background - Hide on mobile */}
+              <div className="absolute inset-0 z-0 opacity-20 hidden lg:block">
                 <Suspense fallback={<div />}>
                   <Canvas camera={{ position: [0, 0, 8] }}>
                     <Suspense fallback={null}>
@@ -235,7 +236,7 @@ console.log(spec.markdown);
                 transition={{ delay: 1, duration: 1 }}
               >
                 <motion.h1 
-                  className="text-[4rem] sm:text-[6rem] md:text-[8rem] lg:text-[10rem] xl:text-[12rem] font-black text-black leading-none tracking-tight mb-8"
+                  className="text-[3rem] sm:text-[4rem] md:text-[6rem] lg:text-[8rem] xl:text-[10rem] font-black text-black leading-none tracking-tight mb-4 sm:mb-8"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ 
                     opacity: 1, 
@@ -251,17 +252,18 @@ console.log(spec.markdown);
                 </motion.h1>
 
                 <motion.p 
-                  className="text-2xl md:text-3xl font-medium text-gray-600 tracking-[0.3em] uppercase mb-8"
+                  className="text-sm sm:text-xl md:text-2xl lg:text-3xl font-medium text-gray-600 tracking-[0.2em] sm:tracking-[0.3em] uppercase mb-4 sm:mb-8"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 2, duration: 1 }}
                 >
-                  SCREENSHOT • ANALYZE • SPEC
+                  <span className="hidden sm:inline">SCREENSHOT • ANALYZE • SPEC</span>
+                  <span className="sm:hidden">SCREENSHOT<br/>ANALYZE<br/>SPEC</span>
                 </motion.p>
 
 
                 <motion.div
-                  className="mt-16 text-sm font-medium text-gray-400 uppercase tracking-[0.3em]"
+                  className="mt-8 sm:mt-16 text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-[0.2em] sm:tracking-[0.3em]"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 3, duration: 1 }}
@@ -270,7 +272,8 @@ console.log(spec.markdown);
                     animate={{ opacity: [0.4, 1, 0.4] }}
                     transition={{ duration: 2, repeat: Infinity }}
                   >
-                    SCROLL TO EXPLORE
+                    <span className="hidden sm:inline">SCROLL TO EXPLORE</span>
+                    <span className="sm:hidden">SCROLL DOWN</span>
                   </motion.span>
                 </motion.div>
               </motion.div>
@@ -279,10 +282,10 @@ console.log(spec.markdown);
 
           {/* Main storytelling sections */}
           {currentSection > 0 && currentSection < 4 && (
-            <div className="grid grid-cols-2 gap-20 items-center h-full">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-20 items-center h-full">
               
               {/* Left: Title Area */}
-              <div className="space-y-6 flex-1">
+              <div className="space-y-4 lg:space-y-6 flex-1 order-2 lg:order-1">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`title-${currentSection}`}
@@ -290,16 +293,16 @@ console.log(spec.markdown);
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -50 }}
                     transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                    className="space-y-4"
+                    className="space-y-3 lg:space-y-4"
                   >
                     <motion.div 
-                      className="text-sm font-bold text-gray-500 tracking-[0.3em]"
+                      className="text-xs lg:text-sm font-bold text-gray-500 tracking-[0.2em] lg:tracking-[0.3em]"
                     >
                       [ {String(currentSection + 1).padStart(2, '0')} / {String(totalSections).padStart(2, '0')} ]
                     </motion.div>
 
-                    <div className="flex items-center space-x-4">
-                      <svg width="64" height="64" viewBox="0 0 32 32" fill="none" className="flex-shrink-0">
+                    <div className="flex items-center space-x-2 lg:space-x-4">
+                      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="flex-shrink-0 lg:w-16 lg:h-16">
                         <defs>
                           <linearGradient id="clarityLanding" x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" stopColor="#000" stopOpacity="0.15"/>
@@ -313,20 +316,20 @@ console.log(spec.markdown);
                         <circle cx="16" cy="16" r="2" fill="#000"/>
                       </svg>
                       <motion.h1 
-                        className="text-6xl md:text-7xl font-black text-black leading-none tracking-tight"
+                        className="text-2xl sm:text-4xl lg:text-6xl xl:text-7xl font-black text-black leading-none tracking-tight"
                       >
                         {currentStory?.title}
                       </motion.h1>
                     </div>
 
                     <motion.h2 
-                      className="text-2xl md:text-3xl font-bold text-gray-600 tracking-tight"
+                      className="text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-600 tracking-tight"
                     >
                       {currentStory?.subtitle}
                     </motion.h2>
 
                     <motion.p 
-                      className="text-lg font-medium text-gray-700 leading-relaxed"
+                      className="text-sm sm:text-base lg:text-lg font-medium text-gray-700 leading-relaxed"
                     >
                       {currentStory?.description}
                     </motion.p>
@@ -348,7 +351,7 @@ console.log(spec.markdown);
               </div>
 
               {/* Right: Code Editor Area */}
-              <div className="relative">
+              <div className="relative order-1 lg:order-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                       key={`code-${currentSection}`}
@@ -361,19 +364,19 @@ console.log(spec.markdown);
                       {/* Code Editor */}
                       <div className="bg-white border-2 border-black shadow-2xl overflow-hidden">
                         {/* Title bar */}
-                        <div className="flex items-center justify-between px-6 py-4 bg-gray-100 border-b-2 border-black">
-                          <div className="flex space-x-3">
-                            <div className="w-3 h-3 bg-black rounded-full"></div>
-                            <div className="w-3 h-3 bg-black rounded-full"></div>
-                            <div className="w-3 h-3 bg-black rounded-full"></div>
+                        <div className="flex items-center justify-between px-3 sm:px-6 py-2 sm:py-4 bg-gray-100 border-b-2 border-black">
+                          <div className="flex space-x-2 sm:space-x-3">
+                            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-black rounded-full"></div>
+                            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-black rounded-full"></div>
+                            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-black rounded-full"></div>
                           </div>
-                          <div className="text-sm font-bold text-black">
+                          <div className="text-xs sm:text-sm font-bold text-black">
                             design-analyzer.js
                           </div>
                         </div>
                         
                         {/* Code area */}
-                        <div className="p-8 font-mono text-sm bg-black text-white">
+                        <div className="p-4 sm:p-6 lg:p-8 font-mono text-xs sm:text-sm bg-black text-white">
                           <motion.pre 
                             className="leading-relaxed whitespace-pre-wrap"
                             initial={{ opacity: 0 }}
@@ -413,8 +416,8 @@ console.log(spec.markdown);
                   duration: 0.8
                 }}
               >
-                {/* 3D Background for READY */}
-                <div className="absolute inset-0 opacity-30" style={{ zIndex: -1 }}>
+                {/* 3D Background for READY - Hide on mobile */}
+                <div className="absolute inset-0 opacity-30 hidden lg:block" style={{ zIndex: -1 }}>
                   <Suspense fallback={<div />}>
                     <Canvas camera={{ position: [0, 0, 6] }}>
                       <Suspense fallback={null}>
@@ -429,7 +432,7 @@ console.log(spec.markdown);
                 </div>
 
                 <motion.h1 
-                  className="text-[14rem] font-black text-white leading-none tracking-tight mb-8"
+                  className="text-[4rem] sm:text-[6rem] md:text-[8rem] lg:text-[12rem] xl:text-[14rem] font-black text-white leading-none tracking-tight mb-4 sm:mb-8"
                   style={{ position: 'relative', zIndex: 10 }}
                   animate={{ 
                     textShadow: [
