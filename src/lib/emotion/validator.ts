@@ -18,7 +18,7 @@ export function validateEmotionExtraction(data: unknown): data is EmotionExtract
   const textFields = ['inner_mood', 'visual_texture', 'tempo', 'distance_to_user'];
   for (const field of textFields) {
     const fieldValue = dataObj[field] as string;
-    if (fieldValue.length < 10 || fieldValue.length > 200) {
+    if (fieldValue.length < 10 || fieldValue.length > 500) {
       console.error(`Field ${field} length out of range: ${fieldValue.length}`);
       return false;
     }
