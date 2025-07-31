@@ -104,7 +104,7 @@ export interface UXEvaluationResult {
  */
 function matchGuard(when: Record<string, unknown>, ctx: UXContext): boolean {
   return Object.entries(when).every(([key, expectedValue]) => {
-    const contextValue = (ctx as any)[key];
+    const contextValue = (ctx as Record<string, unknown>)[key];
     
     // Handle numeric comparisons (e.g., ">5", ">=3")
     if (typeof expectedValue === 'string' && /^>={0,1}\d+$/.test(expectedValue)) {
@@ -206,35 +206,6 @@ export function evaluateRules(
  * Helper to load and parse ux_rule.json
  */
 export async function loadUXRulebook(): Promise<UXRulebook> {
-  // In practice, this would load from the JSON file
-  // For now, return a minimal structure matching the expected format
-  return {
-    version: '1.0',
-    evaluation: {
-      order: 'priority-desc',
-      fallback: 'modal'
-    },
-    policies: [
-      {
-        policyId: 'desktop-default',
-        platform: 'desktop',
-        rules: [], // Will be populated from ux_rule.json
-        defaults: {
-          detailOpen: 'modal',
-          editOpen: 'modal',
-          settingsOpen: 'drawer'
-        }
-      },
-      {
-        policyId: 'mobile-default', 
-        platform: 'mobile',
-        rules: [], // Will be populated from ux_rule.json
-        defaults: {
-          detailOpen: 'sheet',
-          editOpen: 'sheet',
-          settingsOpen: 'drawer'
-        }
-      }
-    ]
-  };
+  const uxRuleData = await import('@/schemas/ux_rule.json');
+  return uxRuleData.default as UXRulebook;
 }

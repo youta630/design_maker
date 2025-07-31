@@ -68,6 +68,9 @@ export async function GET(request: NextRequest) {
         // 画像URLを取得 (source_metaに保存されたURL)
         const imageUrl = (sourceMeta?.imageUrl as string) || undefined;
         
+        // Debug: imageUrlをログ出力
+        console.log('Debug imageUrl for', fileName, ':', imageUrl);
+        
         return {
           id: item.id,
           fileName,

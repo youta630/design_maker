@@ -5,11 +5,10 @@ import medsSchema from '../../schemas/meds.schema.json';
 // MEDS v1.1 Types (generated from schema)
 export interface MEDSSpec {
   version: '1.1';
-  modality: 'image' | 'image-sequence' | 'style-image';
+  modality: 'image';
   source?: {
     fileName: string;
     fileSize?: number;
-    frames?: number;
   };
   viewportProfile: {
     type: 'mobile' | 'tablet' | 'desktop';

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // 月次使用量データを取得
     const { data: monthlyUsage, error: usageError } = await supabase
       .from('usage_monthly')
-      .select('count')
+      .select('count, limit_count')
       .eq('user_id', user.id)
       .eq('month', currentMonth)
       .single();
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       usageCount,
-      monthlyLimit: 50,
+      monthlyLimit: monthlyUsage?.limit_count || 50,
       currentMonth
     });
 
@@ -119,9 +119,10 @@ export async function PATCH(request: NextRequest) {
           .insert({
             user_id: user.id,
             month: currentMonth,
-            count: 1
+            count: 1,
+            limit_count: 50
           })
-          .select('count')
+          .select('count, limit_count')
           .single();
 
         if (insertError) {
@@ -129,7 +130,7 @@ export async function PATCH(request: NextRequest) {
             // 既存レコードをupdate (現在の値を取得してからインクリメント)
             const { data: currentData, error: fetchError } = await supabase
               .from('usage_monthly')
-              .select('count')
+              .select('count, limit_count')
               .eq('user_id', user.id)
               .eq('month', currentMonth)
               .single();
@@ -143,7 +144,7 @@ export async function PATCH(request: NextRequest) {
               .update({ count: (currentData.count || 0) + 1 })
               .eq('user_id', user.id)
               .eq('month', currentMonth)
-              .select('count')
+              .select('count, limit_count')
               .single();
 
             if (updateError) {
@@ -156,7 +157,7 @@ export async function PATCH(request: NextRequest) {
 
             return NextResponse.json({
               usageCount: updateData.count,
-              monthlyLimit: 50,
+              monthlyLimit: updateData.limit_count || 50,
               currentMonth
             });
           } else {
@@ -166,7 +167,7 @@ export async function PATCH(request: NextRequest) {
 
         return NextResponse.json({
           usageCount: insertData.count,
-          monthlyLimit: 50,
+          monthlyLimit: insertData.limit_count || 50,
           currentMonth
         });
 

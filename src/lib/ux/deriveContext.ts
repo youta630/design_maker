@@ -40,8 +40,6 @@ export function deriveContextFromMeds(meds: MEDSSpec): UXContext {
   ).length;
   
   // Layout analysis
-  const density = meds.composition?.density || 'comfortable';
-  const isCompact = density === 'compact';
   const contentWidthNarrow = hasSidebar || platform === 'mobile';
   
   // Task complexity inference

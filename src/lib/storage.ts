@@ -1,138 +1,22 @@
 import { createClient } from './supabase/server';
-import sharp from 'sharp';
 
 // ストレージ設定
 export const STORAGE_BUCKETS = {
-  DESIGN_FILES: 'design-files',
-  THUMBNAILS: 'thumbnails'
+  DESIGN_FILES: 'design-files'
 } as const;
 
 // サポートされるファイル形式
 export const SUPPORTED_MIME_TYPES = {
-  IMAGE: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-  VIDEO: ['video/mp4', 'video/quicktime', 'video/webm', 'video/avi']
+  IMAGE: ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 } as const;
 
 /**
- * セキュアなファイルアップロード関数
+ * セキュアなファイルアップロード関数（画像専用）
  * 本番環境対応：認証・検証・エラーハンドリング強化
  */
-/**
- * 動画サムネイル生成・アップロード関数
- * 動画ファイルからサムネイルを生成してストレージに保存
- */
-export async function generateAndUploadThumbnail(
-  videoBuffer: Buffer,
-  userId: string,
-  originalFileName: string
-): Promise<{ path: string; publicUrl: string; error?: string }> {
-  try {
-    // セキュリティ検証
-    if (!userId || typeof userId !== 'string') {
-      return { path: '', publicUrl: '', error: 'Invalid user ID' };
-    }
-
-    if (!videoBuffer || videoBuffer.length === 0) {
-      return { path: '', publicUrl: '', error: 'Invalid video buffer' };
-    }
-
-    // サーバーサイドSupabaseクライアント初期化
-    const supabase = await createClient();
-
-    // セキュアなファイル名生成
-    const timestamp = Date.now();
-    const baseName = originalFileName
-      .replace(/\.[^/.]+$/, '') // 拡張子を除去
-      .replace(/[^a-zA-Z0-9_-]/g, '_') // 特殊文字を_に置換
-      .substring(0, 30); // 長さ制限（サムネイル用なので短め）
-    
-    const thumbnailPath = `${userId}/${timestamp}_${baseName}_thumbnail.jpg`;
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎬 Generating thumbnail:', {
-        originalFileName,
-        thumbnailPath,
-        bufferSize: `${(videoBuffer.length / 1024 / 1024).toFixed(2)}MB`
-      });
-    }
-
-    // セキュアなプレースホルダー画像生成
-    // TODO: 将来的にはffmpegを使用して実際のサムネイル生成
-    const placeholderThumbnail = await sharp({
-      create: {
-        width: 320,
-        height: 180,
-        channels: 3,
-        background: { r: 64, g: 64, b: 64 } // ダーク系背景
-      }
-    })
-    .jpeg({ 
-      quality: 80,
-      progressive: true,
-      mozjpeg: true // 最適化
-    })
-    .toBuffer();
-
-    // サムネイルをアップロード（design-filesバケットに保存）
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKETS.DESIGN_FILES)
-      .upload(thumbnailPath, placeholderThumbnail, {
-        contentType: 'image/jpeg',
-        cacheControl: '3600',
-        upsert: false // 重複防止
-      });
-
-    if (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('❌ Thumbnail upload error:', error);
-      }
-      return { 
-        path: '', 
-        publicUrl: '', 
-        error: `Thumbnail upload failed: ${error.message}` 
-      };
-    }
-
-    // 公開URLを取得
-    const { data: publicUrlData } = supabase.storage
-      .from(STORAGE_BUCKETS.DESIGN_FILES)
-      .getPublicUrl(thumbnailPath);
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Thumbnail generated successfully:', {
-        path: data.path,
-        publicUrl: publicUrlData.publicUrl
-      });
-    }
-
-    return {
-      path: data.path,
-      publicUrl: publicUrlData.publicUrl
-    };
-
-  } catch (error) {
-    // 構造化エラーログ
-    const errorLog = {
-      function: 'generateAndUploadThumbnail',
-      userId,
-      originalFileName,
-      bufferSize: videoBuffer?.length,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    };
-    
-    console.error('💥 Thumbnail generation error:', errorLog);
-    
-    return { 
-      path: '', 
-      publicUrl: '', 
-      error: error instanceof Error ? error.message : 'Thumbnail generation failed' 
-    };
-  }
-}
 
 /**
- * ファイルアップロード関数（画像は直接、動画はサムネイルのみ保存）
+ * 画像ファイルアップロード関数
  */
 export async function uploadFile(
   file: File, 
@@ -151,17 +35,7 @@ export async function uploadFile(
       return { path: '', publicUrl: '', error: validation.error };
     }
 
-    // 動画ファイルの場合はサムネイルを生成してアップロード
-    if (file.type.startsWith('video/')) {
-      // 動画をBufferに変換
-      const arrayBuffer = await file.arrayBuffer();
-      const videoBuffer = Buffer.from(arrayBuffer);
-      
-      // サムネイル生成・アップロード
-      return await generateAndUploadThumbnail(videoBuffer, userId, file.name);
-    }
-
-    // 画像ファイルの場合は通常通りアップロード
+    // 画像ファイルをアップロード
     const supabase = await createClient();
 
     // セキュアなファイル名生成（特殊文字除去・長さ制限）
@@ -367,7 +241,7 @@ export async function fileExists(
   }
 }
 
-// ファイルサイズとタイプの検証
+// 画像ファイルサイズとタイプの検証
 export function validateFile(file: File): { valid: boolean; error?: string } {
   // ファイルサイズチェック（50MB制限）
   const maxSize = 50 * 1024 * 1024; // 50MB
@@ -376,10 +250,7 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   }
 
   // MIMEタイプチェック
-  const allSupportedTypes = [
-    ...SUPPORTED_MIME_TYPES.IMAGE,
-    ...SUPPORTED_MIME_TYPES.VIDEO
-  ];
+  const allSupportedTypes = SUPPORTED_MIME_TYPES.IMAGE;
 
   if (!allSupportedTypes.includes(file.type as typeof allSupportedTypes[number])) {
     return { 

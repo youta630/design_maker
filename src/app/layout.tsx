@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Design Spec Generator",
+  title: "snap2spec",
   description: "AI-powered design specification generator for UI/UX designs",
   icons: {
     icon: [

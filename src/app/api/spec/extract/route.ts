@@ -6,6 +6,8 @@ import { validateAndFillMEDS, medsSchema } from '@/lib/validation/medsSchema';
 import { normalizeMeds } from '@/lib/spec/normalizeMeds';
 import { deriveContextFromMeds } from '@/lib/ux/deriveContext';
 import { evaluateRules, loadUXRulebook } from '@/lib/ux/evaluator';
+import { integrateUXIntoMEDS } from '@/lib/ux/integrator';
+import { ensureDesignFilesBucket } from '@/lib/supabase/setup';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -35,233 +37,45 @@ function checkUserRateLimit(userId: string): boolean {
 
 function getMEDSPrompt(): string {
   return [
-    'You are a UI design system expert. Analyze this image and extract a structured design specification.',
-    'Return ONLY valid JSON that strictly conforms to the provided responseSchema.',
+    '🎯 FOCUS: Extract core visual design elements from the IMAGE. UX patterns will be enhanced automatically.',
+    'OUTPUT: Return ONLY a valid JSON object matching the responseSchema.',
     '',
-    'EXAMPLE OUTPUT (simplified structure):',
-    '{',
-    '  "version": "1.1",',
-    '  "modality": "image",',
-    '  "viewportProfile": {"type": "desktop", "widthPx": 1200, "confidence": 0.9},',
-    '  "foundations": {',
-    '    "color": [{"token": "bg", "hex": "#ffffff"}, {"token": "text-primary", "hex": "#000000"}],',
-    '    "typography": {"primaryFamily": "Inter", "familyCandidates": [{"family": "Inter", "confidence": 0.9}], "scalePx": [14,16,18], "weights": [400,600]},',
-    '    "spacing": {"basePx": 8, "scalePx": [8,16,24]},',
-    '    "radius": [0,4,8], "shadow": {"sm": "0 1px 2px rgba(0,0,0,0.1)"}, "motion": {"durationsMs": {"fast": 150, "standard": 300, "slow": 500}, "easings": ["ease-in-out"]},',
-    '    "grid": {"columns": 12, "gapPx": 16, "containerMaxWidthPx": 1200}, "a11y": {"hitAreaPx": 44, "focusRing": {"widthPx": 2, "colorToken": "brand"}, "minContrast": "AA"}',
-    '  },',
-    '  "components": [{"type": "Button", "confidence": 0.8}, {"type": "TextField", "confidence": 0.9}],',
-    '  "composition": {"pagePaddingPx": 24, "sectionGapPx": 32, "cardInnerPaddingPx": 16, "density": "comfortable"}',
-    '}',
+    '🔥 PRIORITIES (in order):',
+    '1. COLORS: Extract 5-8 semantic color tokens with accurate hex values',
+    '2. TYPOGRAPHY: Identify font families, sizes (multiples of 8), and weights', 
+    '3. COMPONENTS: List visible UI elements with high confidence scores',
+    '4. LAYOUT: Analyze spacing, padding, and viewport characteristics',
     '',
-    'ANALYSIS RULES:',
-    '• Use EXACT component types: AppBar,TopNav,Sidebar,Drawer,Tabs,Button,IconButton,TextField,TextArea,Select,Checkbox,RadioGroup,Switch,Card,ListItem,Table,Badge,Avatar,Modal,Dialog,Alert',
-    '• NEVER use categories like "Navigation", "Form", "Input" - only specific types above',
-    '• Color tokens MUST be: bg, surface, border, text-primary, text-secondary, brand, accent, error, success, warning',
-    '• Motion easings MUST be: linear, ease-in, ease-out, ease-in-out (NEVER "unknown")',
-    '• Shadow MUST be object with properties, NEVER null',
-    '• Quantize measurements to 8px multiples (8,16,24,32...)',
-    '• Platform: mobile<768px, tablet<1024px, desktop≥1024px',
-    '• Use "unknown" ONLY for numeric values, not for enums',
-    '• Include 5+ color tokens, 3+ typography sizes, 3+ spacing values',
-    '• Set confidence 0.0-1.0 based on visual clarity',
+    '✅ COMPONENT TYPES (use exact names):',
+    'AppBar, TopNav, Sidebar, Drawer, Tabs, Button, IconButton, TextField, TextArea, Select, Checkbox, RadioGroup, Switch, Card, ListItem, Table, Badge, Avatar, Modal, Dialog, Alert',
     '',
-    'CRITICAL: Follow the exact JSON schema structure. No deviation allowed.'
+    '🎨 COLOR TOKENS (choose 5-8 from these):',
+    'bg, surface, border, text-primary, text-secondary, text-inverse, brand, accent, error, success, warning, overlay',
+    '',
+    '📏 MEASUREMENT RULES:',
+    '- All sizes: multiples of 8 (8, 16, 24, 32, 48, 64)',
+    '- Viewport: mobile<768, tablet<1024, desktop≥1024',
+    '- Confidence: decimal 0.0-1.0 (not strings)',
+    '',
+    '⚡ OPTIMIZATIONS:',
+    '- Focus on what you can clearly see',
+    '- Use "unknown" for unclear measurements', 
+    '- Skip complex UX states (handled automatically)',
+    '- Prefer specific over generic',
+    '',
+    '🚫 NEVER:',
+    '- Generic categories ("Form", "Navigation")',
+    '- Non-8-multiple measurements (15, 25, 30)',
+    '- Invented color tokens',
+    '- String confidence values',
+    '',
+    'Extract the core design now:'
   ].join('\n');
 }
 
-// Default UX rules (12 rules as mentioned in requirements)
-function getDefaultUxRules() {
-  return [
-    {
-      id: 'nav-01',
-      family: 'Navigation',
-      event: 'click',
-      selector: { location: 'TopNav', labelIncludes: ['home', 'dashboard'] },
-      action: 'route',
-      destination: { screen: 'home' },
-      priority: 'high',
-      confidence: 0.9,
-      origin: 'global-default',
-      rationale: ['Standard navigation pattern']
-    },
-    {
-      id: 'nav-02',
-      family: 'Navigation',
-      event: 'click',
-      selector: { location: 'Sidebar', icon: 'chevron-right' },
-      action: 'route',
-      priority: 'medium',
-      confidence: 0.8,
-      origin: 'global-default',
-      rationale: ['Sidebar navigation expansion']
-    },
-    {
-      id: 'detail-01',
-      family: 'Details',
-      event: 'click',
-      selector: { location: 'Card', labelIncludes: ['view', 'details'] },
-      action: 'modal',
-      alternatives: ['sheet', 'route'],
-      priority: 'high',
-      confidence: 0.9,
-      origin: 'global-default',
-      rationale: ['Card detail view pattern']
-    },
-    {
-      id: 'detail-02',
-      family: 'Details',
-      event: 'click',
-      selector: { location: 'TableRow' },
-      action: 'modal',
-      alternatives: ['route'],
-      priority: 'medium',
-      confidence: 0.7,
-      origin: 'global-default',
-      rationale: ['Table row expansion']
-    },
-    {
-      id: 'edit-01',
-      family: 'Edit',
-      event: 'click',
-      selector: { location: 'Content', labelIncludes: ['edit', 'modify'] },
-      action: 'modal',
-      alternatives: ['sheet', 'inline'],
-      priority: 'high',
-      confidence: 0.8,
-      origin: 'global-default',
-      rationale: ['Edit action pattern']
-    },
-    {
-      id: 'edit-02',
-      family: 'Edit',
-      event: 'click',
-      selector: { icon: 'plus' },
-      action: 'modal',
-      alternatives: ['route'],
-      priority: 'medium',
-      confidence: 0.8,
-      origin: 'global-default',
-      rationale: ['Create new item pattern']
-    },
-    {
-      id: 'menu-01',
-      family: 'Menus',
-      event: 'click',
-      selector: { icon: 'ellipsis' },
-      action: 'dropdown',
-      alternatives: ['popover'],
-      priority: 'high',
-      confidence: 0.9,
-      origin: 'global-default',
-      rationale: ['Context menu pattern']
-    },
-    {
-      id: 'menu-02',
-      family: 'Menus',
-      event: 'hover',
-      selector: { location: 'TopNav' },
-      action: 'dropdown',
-      priority: 'medium',
-      confidence: 0.7,
-      origin: 'global-default',
-      rationale: ['Navigation dropdown on hover']
-    },
-    {
-      id: 'confirm-01',
-      family: 'Confirm',
-      event: 'click',
-      selector: { labelIncludes: ['delete', 'remove'] },
-      action: 'modal',
-      alternatives: ['banner'],
-      priority: 'high',
-      confidence: 0.9,
-      origin: 'global-default',
-      rationale: ['Destructive action confirmation']
-    },
-    {
-      id: 'feedback-01',
-      family: 'Feedback',
-      event: 'submit',
-      action: 'toast',
-      alternatives: ['banner'],
-      priority: 'medium',
-      confidence: 0.8,
-      origin: 'global-default',
-      rationale: ['Form submission feedback']
-    },
-    {
-      id: 'target-01',
-      family: 'Target',
-      event: 'click',
-      selector: { icon: 'external' },
-      action: 'external',
-      priority: 'medium',
-      confidence: 0.9,
-      origin: 'global-default',
-      rationale: ['External link pattern']
-    },
-    {
-      id: 'target-02',
-      family: 'Target',
-      event: 'click',
-      selector: { icon: 'download' },
-      action: 'download',
-      priority: 'medium',
-      confidence: 0.9,
-      origin: 'global-default',
-      rationale: ['Download action pattern']
-    }
-  ];
-}
+// Legacy UX rules removed - now handled by sophisticated ux_rule.json evaluation
 
-// Generate uxSignals based on the MEDS spec
-function generateUxSignals(medsSpec: any) {
-  const viewportProfile = medsSpec.viewportProfile || {};
-  const platform = viewportProfile.type || 'desktop';
-  
-  // Infer UI patterns from components
-  const components = Array.isArray(medsSpec.components) ? medsSpec.components : [];
-  const hasTopNav = components.some((c: any) => 
-    c.type === 'AppBar' || c.type === 'TopNav'
-  );
-  
-  const hasSidebar = components.some((c: any) => 
-    c.type === 'Sidebar' || c.type === 'Drawer'
-  );
-  
-  // Infer density from spacing
-  const foundations = medsSpec.foundations || {};
-  const spacing = foundations.spacing || {};
-  const scalePx = Array.isArray(spacing.scalePx) ? spacing.scalePx as number[] : [];
-  const avgSpacing = scalePx.length > 0 
-    ? scalePx.reduce((a, b) => a + b, 0) / scalePx.length 
-    : 16;
-  const density = avgSpacing < 12 ? 'compact' : 'comfortable';
-  
-  // Infer common icons from component types
-  const icons = [];
-  if (components.some((c: any) => c.type === 'Dropdown' || c.type === 'DropdownMenu')) {
-    icons.push('chevron-right');
-  }
-  if (components.some((c: any) => c.type === 'Modal' || c.type === 'Dialog')) {
-    icons.push('ellipsis');
-  }
-  
-  // Infer CTA labels from common patterns
-  const ctaLabels = ['Save', 'Cancel', 'Submit', 'Continue'];
-  
-  return {
-    platform: platform as 'mobile' | 'tablet' | 'desktop',
-    layout: {
-      topNav: hasTopNav,
-      sidebar: hasSidebar,
-      density: density as 'comfortable' | 'compact'
-    },
-    icons,
-    ctaLabels
-  };
-}
+// Legacy uxSignals generation removed - context is now derived by deriveContextFromMeds
 
 // JSON-only analyzeWithRetryLogic (inline, no CSV/video fallback)
 async function analyzeWithRetryLogic(
@@ -378,16 +192,15 @@ export async function POST(request: NextRequest) {
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
 
-      // Check if bucket exists, create if needed
-      const { error: bucketError } = await supabase.storage
-        .createBucket('images', { public: true });
-      
-      if (bucketError && !bucketError.message.includes('already exists')) {
-        console.warn('Failed to create bucket:', bucketError);
+      // Ensure bucket exists (auto-setup if possible)
+      const bucketSetup = await ensureDesignFilesBucket();
+      if (!bucketSetup.success) {
+        console.warn('Bucket setup failed:', bucketSetup.error);
+        // Continue anyway - some users might have manual setup
       }
 
       const { error: storageError } = await supabase.storage
-        .from('images')
+        .from('design-files')
         .upload(filePath, inputBuffer, {
           contentType: file.type,
           cacheControl: '3600',
@@ -397,12 +210,22 @@ export async function POST(request: NextRequest) {
       if (storageError) {
         console.warn('Failed to save image to storage:', storageError);
       } else {
-        // Get public URL
+        // Get public URL - ensure proper format
         const { data: urlData } = supabase.storage
-          .from('images')
+          .from('design-files')
           .getPublicUrl(filePath);
         
         imageUrl = urlData?.publicUrl;
+        console.log('Generated imageUrl:', imageUrl);
+        
+        // Fallback: construct URL manually if getPublicUrl fails
+        if (!imageUrl || imageUrl.includes('undefined')) {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+          if (supabaseUrl) {
+            imageUrl = `${supabaseUrl}/storage/v1/object/public/design-files/${filePath}`;
+            console.log('Fallback imageUrl:', imageUrl);
+          }
+        }
       }
     } catch (storageErr) {
       console.warn('Storage operation failed:', storageErr);
@@ -466,7 +289,7 @@ export async function POST(request: NextRequest) {
           modelConfig
         );
         break; // Success, exit retry loop
-      } catch (geminiError: any) {
+      } catch (geminiError: unknown) {
         retryCount++;
         console.error(`Gemini generation failed (attempt ${retryCount}):`, geminiError);
         
@@ -544,8 +367,8 @@ export async function POST(request: NextRequest) {
     
     if (process.env.NODE_ENV === 'development') {
       console.log('=== NORMALIZED SPEC ===');
-      console.log('Components:', (normalizedSpec as any).components?.map((c: any) => c.type));
-      console.log('Color tokens:', ((normalizedSpec as any).foundations?.color as any[])?.map((c: any) => c.token));
+      console.log('Components:', (normalizedSpec as Record<string, unknown>).components);
+      console.log('Color tokens:', (normalizedSpec as Record<string, unknown>).foundations);
     }
 
     // Step 2: Validate and fill defaults
@@ -562,7 +385,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const medsSpec = validationResult.spec!;
+    let medsSpec = validationResult.spec!;
 
     // Add source metadata (only if not already present from AI)
     medsSpec.source = medsSpec.source || {
@@ -583,36 +406,28 @@ export async function POST(request: NextRequest) {
       const rulebook = await loadUXRulebook();
       const uxEvaluation = evaluateRules(rulebook, uxContext, platform);
       
-      // Add UX decisions to the spec
-      (medsSpec as any).uxDecisions = uxEvaluation.decisions;
-      (medsSpec as any).uxPolicy = uxEvaluation.policyMeta;
+      // 🚀 NEW: Integrate UX decisions into MEDS structure
+      medsSpec = integrateUXIntoMEDS(medsSpec, uxEvaluation);
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('UX Decisions:', uxEvaluation.decisions.length);
+        console.log('=== UX INTEGRATION SUCCESS ===');
+        console.log('UX Context:', JSON.stringify(uxContext, null, 2));
+        console.log('UX Decisions integrated:', uxEvaluation.decisions.length);
         console.log('Policy:', uxEvaluation.policyMeta.policyId);
+        console.log('Enhanced components count:', medsSpec.components.length);
+        console.log('Enhanced patterns:', (medsSpec as unknown as Record<string, unknown>).patterns);
       }
     } catch (uxError) {
-      console.warn('UX evaluation failed, continuing without UX decisions:', uxError);
+      console.error('UX evaluation failed:', uxError);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('UX Context that failed:', JSON.stringify(uxContext, null, 2));
+        console.log('Proceeding with base MEDS spec without UX enhancements');
+      }
     }
 
-    // Inject default uxRulebook if not provided by AI (legacy support)
-    if (!medsSpec.uxRulebook || !medsSpec.uxRulebook.rules || medsSpec.uxRulebook.rules.length === 0) {
-      medsSpec.uxRulebook = {
-        version: '0.1',
-        platform: medsSpec.viewportProfile?.type || 'desktop',
-        rules: getDefaultUxRules() as any,
-        defaults: {
-          detailOpen: { desktop: 'modal', mobile: 'sheet' },
-          editOpen: { desktop: 'modal', mobile: 'sheet' },
-          settingsOpen: 'drawer'
-        }
-      };
-    }
-
-    // Generate uxSignals if not provided (legacy support)
-    if (!medsSpec.uxSignals) {
-      medsSpec.uxSignals = generateUxSignals(medsSpec);
-    }
+    // Legacy fields are no longer needed - UX evaluation is handled by uxDecisions/uxPolicy
+    // which are generated in the UX evaluation pipeline above
 
     // Save to database
     const { data: savedSpec, error: dbError } = await supabase

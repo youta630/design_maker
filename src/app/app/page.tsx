@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import MediaUpload from '@/components/MediaUpload';
 import MEDSJsonViewer from '@/components/MEDSJsonViewer';
 import Link from 'next/link';
@@ -25,12 +25,7 @@ export default function AppPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    // 認証状態をチェック
-    checkAuthentication();
-  }, []);
-
-  const checkAuthentication = async () => {
+  const checkAuthentication = useCallback(async () => {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
@@ -63,8 +58,12 @@ export default function AppPage() {
     } finally {
       setAuthLoading(false);
     }
-  };
+  }, []);
 
+  useEffect(() => {
+    // 認証状態をチェック
+    checkAuthentication();
+  }, [checkAuthentication]);
 
   const loadUsageData = async () => {
     try {
@@ -239,19 +238,6 @@ export default function AppPage() {
                 </div>
               </div>
               
-              {/* Subscribe Button - Coming Soon */}
-              <Link 
-                href="/app/subscribe" 
-                className="px-4 py-2 bg-gray-200 text-gray-500 text-sm font-medium rounded-lg cursor-pointer hover:bg-gray-300 transition-colors"
-                title="Premium plans coming soon"
-              >
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                  </svg>
-                  <span>Premium (準備中)</span>
-                </div>
-              </Link>
             </div>
             
             {/* History Button */}

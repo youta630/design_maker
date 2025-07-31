@@ -1,216 +1,202 @@
 -- =====================================================
--- DESIGN SPEC GENERATOR - 最適化SQLスキーマ
+-- 統一SQL: Design Spec Generator 完全クリーンアップ版（修正版）
 -- =====================================================
--- Google OAuth認証、月50回制限、UI仕様生成機能
--- 最小限・最適化済みテーブル構成
--- =====================================================
-
--- =====================================================
--- 1. 使用量管理テーブル
+-- 画像専用、シンプル構成、完全一致保証
+-- 実際のSupabase構成に合わせた設計
+-- Supabase互換のSQL構文に修正
 -- =====================================================
 
-CREATE TABLE IF NOT EXISTS user_usage (
+-- =====================================================
+-- ⚠️  完全クリーンアップ（既存データ削除）
+-- =====================================================
+
+-- 既存ストレージポリシーを削除
+DROP POLICY IF EXISTS "Users can upload their own images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can view their own images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own images" ON storage.objects;
+DROP POLICY IF EXISTS "Public can view images" ON storage.objects;
+
+-- 既存ポリシーを削除
+DROP POLICY IF EXISTS "Users can manage their own specs" ON specs;
+DROP POLICY IF EXISTS "Enable read access for users based on user_id" ON user_usage;
+DROP POLICY IF EXISTS "Enable insert for users based on user_id" ON user_usage;
+DROP POLICY IF EXISTS "Enable update for users based on user_id" ON user_usage;
+DROP POLICY IF EXISTS "Enable delete for users based on user_id" ON user_usage;
+
+-- 既存テーブルを削除
+DROP TABLE IF EXISTS gemini_files CASCADE;
+DROP TABLE IF EXISTS user_usage CASCADE;
+DROP TABLE IF EXISTS usage_monthly CASCADE;
+DROP TABLE IF EXISTS specs CASCADE;
+
+-- 既存インデックスを削除（念のため）
+DROP INDEX IF EXISTS idx_specs_user_id_created;
+DROP INDEX IF EXISTS idx_specs_modality;
+DROP INDEX IF EXISTS idx_user_usage_user_id;
+DROP INDEX IF EXISTS idx_user_usage_last_reset_date;
+
+-- =====================================================
+-- 1. 使用量管理テーブル（コードと一致：usage_monthly）
+-- =====================================================
+
+CREATE TABLE usage_monthly (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   
   -- 月次使用量管理
-  usage_count INTEGER DEFAULT 0 CHECK (usage_count >= 0),
-  monthly_limit INTEGER DEFAULT 50 CHECK (monthly_limit > 0),
-  last_reset_date DATE DEFAULT CURRENT_DATE,
-  last_used_at TIMESTAMP WITH TIME ZONE,
+  month TEXT NOT NULL, -- 'YYYY-MM' 形式
+  count INTEGER DEFAULT 0 CHECK (count >= 0),
+  limit_count INTEGER DEFAULT 50 CHECK (limit_count > 0),
   
   -- メタデータ
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   
-  -- 制約：ユーザーごとに1レコード
-  CONSTRAINT unique_user_usage UNIQUE (user_id)
+  -- 制約：ユーザー+月の組み合わせは一意
+  CONSTRAINT unique_user_month UNIQUE (user_id, month)
 );
 
 -- インデックス
-CREATE INDEX IF NOT EXISTS idx_user_usage_user_id ON user_usage(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_usage_last_reset_date ON user_usage(last_reset_date);
+CREATE INDEX idx_usage_monthly_user_id ON usage_monthly(user_id);
+CREATE INDEX idx_usage_monthly_month ON usage_monthly(month);
+CREATE INDEX idx_usage_monthly_user_month ON usage_monthly(user_id, month);
 
 -- RLS設定
-ALTER TABLE user_usage ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usage_monthly ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Enable read access for users based on user_id" ON user_usage;
-CREATE POLICY "Enable read access for users based on user_id" ON user_usage
-  FOR SELECT TO authenticated
-  USING ((select auth.uid()) = user_id);
-
-DROP POLICY IF EXISTS "Enable insert for users based on user_id" ON user_usage;
-CREATE POLICY "Enable insert for users based on user_id" ON user_usage
-  FOR INSERT TO authenticated
-  WITH CHECK ((select auth.uid()) = user_id);
-
-DROP POLICY IF EXISTS "Enable update for users based on user_id" ON user_usage;
-CREATE POLICY "Enable update for users based on user_id" ON user_usage
-  FOR UPDATE TO authenticated
+CREATE POLICY "Users can manage their own usage data" ON usage_monthly
+  FOR ALL TO authenticated
   USING ((select auth.uid()) = user_id)
   WITH CHECK ((select auth.uid()) = user_id);
 
-DROP POLICY IF EXISTS "Enable delete for users based on user_id" ON user_usage;
-CREATE POLICY "Enable delete for users based on user_id" ON user_usage
-  FOR DELETE TO authenticated
-  USING ((select auth.uid()) = user_id);
-
 -- =====================================================
--- 2. UI仕様テーブル（統一された唯一のデータストア）
+-- 2. 画像専用仕様テーブル（シンプル化）
 -- =====================================================
 
-CREATE TABLE IF NOT EXISTS specs (
+CREATE TABLE specs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  modality TEXT NOT NULL CHECK (modality IN ('image', 'video')),
-  source_meta JSONB,
+  
+  -- 画像専用
+  modality TEXT NOT NULL DEFAULT 'image' CHECK (modality = 'image'),
+  
+  -- メタデータ（imageUrl含む）
+  source_meta JSONB NOT NULL DEFAULT '{}',
+  
+  -- MEDS仕様データ
   spec JSONB NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  
+  -- タイムスタンプ
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- インデックス
-CREATE INDEX IF NOT EXISTS idx_specs_user_id_created ON specs(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_specs_modality ON specs(modality);
+-- インデックス（最適化）
+CREATE INDEX idx_specs_user_created ON specs(user_id, created_at DESC);
+CREATE INDEX idx_specs_source_meta_gin ON specs USING GIN (source_meta);
 
 -- RLS設定
 ALTER TABLE specs ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Users can manage their own specs" ON specs;
 CREATE POLICY "Users can manage their own specs" ON specs
   FOR ALL TO authenticated
   USING ((select auth.uid()) = user_id)
   WITH CHECK ((select auth.uid()) = user_id);
 
 -- =====================================================
--- 3. Gemini Files APIキャッシュテーブル
+-- 3. updated_at自動更新トリガー
 -- =====================================================
 
-CREATE TABLE IF NOT EXISTS gemini_files (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  
-  -- Gemini Files API情報
-  uri TEXT NOT NULL,
-  name TEXT NOT NULL,
-  mime_type TEXT NOT NULL,
-  size_bytes BIGINT NOT NULL CHECK (size_bytes > 0),
-  file_hash TEXT NOT NULL CHECK (length(file_hash) >= 10),
-  expiration_time TIMESTAMP WITH TIME ZONE NOT NULL,
-  
-  -- メタデータ
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
-  -- 制約
-  CONSTRAINT unique_user_file_hash UNIQUE (user_id, file_hash),
-  CONSTRAINT unique_gemini_name UNIQUE (name)
+-- updated_at自動更新関数
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_usage_monthly_updated_at
+  BEFORE UPDATE ON usage_monthly
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- 4. ストレージポリシー設定（design-files統一）
+-- =====================================================
+
+-- design-files バケット設定確認
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'design-files',
+  'design-files', 
+  true,
+  52428800, -- 50MB
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']::text[]
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+-- ストレージRLSポリシー（個別に作成）
+CREATE POLICY "Users can upload their own images" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'design-files' AND (storage.foldername(name))[1] = (select auth.uid()::text));
+
+CREATE POLICY "Users can view their own images" ON storage.objects
+  FOR SELECT TO authenticated
+  USING (bucket_id = 'design-files' AND (storage.foldername(name))[1] = (select auth.uid()::text));
+
+CREATE POLICY "Users can delete their own images" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'design-files' AND (storage.foldername(name))[1] = (select auth.uid()::text));
+
+-- パブリック読み取り許可（画像表示用）
+CREATE POLICY "Public can view images" ON storage.objects
+  FOR SELECT TO public
+  USING (bucket_id = 'design-files');
+
+-- =====================================================
+-- 5. 移行ログ記録
+-- =====================================================
+
+-- バージョン情報テーブル
+CREATE TABLE IF NOT EXISTS migration_log (
+  id SERIAL PRIMARY KEY,
+  migration_name TEXT NOT NULL,
+  applied_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- インデックス
-CREATE INDEX IF NOT EXISTS idx_gemini_files_user_id ON gemini_files(user_id);
-CREATE INDEX IF NOT EXISTS idx_gemini_files_file_hash ON gemini_files(file_hash);
-CREATE INDEX IF NOT EXISTS idx_gemini_files_expiration ON gemini_files(expiration_time);
-
--- RLS設定
-ALTER TABLE gemini_files ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Enable read access for users based on user_id" ON gemini_files;
-CREATE POLICY "Enable read access for users based on user_id" ON gemini_files
-  FOR SELECT TO authenticated
-  USING ((select auth.uid()) = user_id);
-
-DROP POLICY IF EXISTS "Enable insert for users based on user_id" ON gemini_files;
-CREATE POLICY "Enable insert for users based on user_id" ON gemini_files
-  FOR INSERT TO authenticated
-  WITH CHECK ((select auth.uid()) = user_id);
-
-DROP POLICY IF EXISTS "Enable update for users based on user_id" ON gemini_files;
-CREATE POLICY "Enable update for users based on user_id" ON gemini_files
-  FOR UPDATE TO authenticated
-  USING ((select auth.uid()) = user_id)
-  WITH CHECK ((select auth.uid()) = user_id);
-
-DROP POLICY IF EXISTS "Enable delete for users based on user_id" ON gemini_files;
-CREATE POLICY "Enable delete for users based on user_id" ON gemini_files
-  FOR DELETE TO authenticated
-  USING ((select auth.uid()) = user_id);
+INSERT INTO migration_log (migration_name) 
+VALUES ('unified-migration-v1.0-image-only-fixed');
 
 -- =====================================================
--- 4. ストレージバケット設定
+-- 6. 動作確認クエリ
 -- =====================================================
 
--- design-filesバケット（画像・動画サムネイル用）
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) 
-VALUES (
-  'design-files', 
-  'design-files', 
-  false,
-  52428800, -- 50MB
-  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-) ON CONFLICT (id) DO NOTHING;
+-- テーブル作成確認
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name IN ('usage_monthly', 'specs', 'migration_log');
 
--- ストレージRLSポリシー
-DROP POLICY IF EXISTS "design_files_policy" ON storage.objects;
-CREATE POLICY "design_files_policy" ON storage.objects
-  FOR ALL TO authenticated
-  USING (
-    bucket_id = 'design-files' 
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  )
-  WITH CHECK (
-    bucket_id = 'design-files' 
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
+-- ストレージバケット確認
+SELECT name, public FROM storage.buckets WHERE name = 'design-files';
 
 -- =====================================================
--- 5. 自動クリーンアップ関数
+-- 完了メッセージ
 -- =====================================================
-
--- 期限切れGeminiファイル削除
-CREATE OR REPLACE FUNCTION delete_expired_gemini_files()
-RETURNS void AS $$
-BEGIN
-  DELETE FROM gemini_files WHERE expiration_time < NOW();
-  RAISE NOTICE 'Expired Gemini files cleaned up at %', NOW();
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 月次使用量リセット
-CREATE OR REPLACE FUNCTION reset_monthly_usage()
-RETURNS void AS $$
-BEGIN
-  UPDATE user_usage 
-  SET 
-    usage_count = 0,
-    last_reset_date = CURRENT_DATE,
-    updated_at = NOW()
-  WHERE last_reset_date < DATE_TRUNC('month', CURRENT_DATE);
-  
-  RAISE NOTICE 'Monthly usage reset completed at %', NOW();
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
+-- 
+-- ✅ 統一マイグレーション完了（修正版）
+-- 
+-- 変更点:
+-- 1. Supabase互換のSQL構文に修正
+-- 2. CREATE POLICY IF NOT EXISTS → 個別CREATE POLICY
+-- 3. ストレージポリシーの先行削除を追加
+-- 4. 動作確認クエリを追加
+-- 
+-- 次のステップ:
+-- 1. このSQLを実行
+-- 2. npm install
+-- 3. npm run dev で画像表示確認
+-- 
 -- =====================================================
--- 6. 旧テーブル削除（完全移行）
--- =====================================================
-
--- 旧analysis_historyテーブルを削除
-DROP TABLE IF EXISTS analysis_history CASCADE;
-
--- =====================================================
--- 7. 権限設定
--- =====================================================
-
--- 必要な権限をauthenticatedロールに付与
-GRANT ALL ON public.user_usage TO authenticated;
-GRANT ALL ON public.specs TO authenticated;
-GRANT ALL ON public.gemini_files TO authenticated;
-GRANT USAGE ON SCHEMA public TO authenticated;
-
--- =====================================================
--- 8. 完了確認
--- =====================================================
-
-SELECT 
-  'Design Spec Generator 最適化完了' as message,
-  '3テーブル（最小構成）+ RLS + ストレージ' as status,
-  NOW() as completed_at;

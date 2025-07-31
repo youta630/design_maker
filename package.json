@@ -1,5 +1,5 @@
 {
-  "name": "design-spec-generator",
+  "name": "snap2spec",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -24,7 +24,6 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-dropzone": "^14.3.8",
-    "sharp": "^0.34.3",
     "three": "^0.178.0"
   },
   "devDependencies": {
