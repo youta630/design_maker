@@ -28,19 +28,19 @@ function BlobCore({ scrollProgress, sectionIndex }: { scrollProgress: number; se
 
   const currentColor = sectionColors[sectionIndex as keyof typeof sectionColors] || sectionColors[0];
 
-  // 高品質PBRマテリアル
+  // 高品質PBRマテリアル（明るい背景用に調整）
   const material = useMemo(() => new THREE.MeshPhysicalMaterial({
-    color: currentColor,
-    metalness: 0.9,
-    roughness: 0.2,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.08,
-    iridescence: 1.0,
+    color: new THREE.Color(0x10b981), // emerald-500
+    metalness: 0.1,
+    roughness: 0.3,
+    clearcoat: 0.8,
+    clearcoatRoughness: 0.1,
+    iridescence: 0.5,
     iridescenceIOR: 1.3,
-    envMapIntensity: 1.2,
-    transmission: 0.1,
-    thickness: 0.5,
-  }), [currentColor]);
+    envMapIntensity: 0.8,
+    transmission: 0.05,
+    thickness: 0.3,
+  }), []);
 
   // 高解像度ジオメトリ（サブディビジョン多め）
   const geometry = useMemo(() => {
@@ -71,14 +71,13 @@ function BlobCore({ scrollProgress, sectionIndex }: { scrollProgress: number; se
 
   // 環境光設定
   useMemo(() => {
-    // 簡易HDRI環境（グラデーション背景）
-    const bgColor = new THREE.Color(0x0a0a0a);
-    scene.background = bgColor;
+    // 明るい背景色（透明にして背景グラデーションを活かす）
+    scene.background = null;
     
-    // 環境光として簡易的なキューブマップ
+    // 明るい環境光
     const pmremGenerator = new THREE.PMREMGenerator(gl);
     const envScene = new THREE.Scene();
-    envScene.background = new THREE.Color(0x1a1a1a);
+    envScene.background = new THREE.Color(0xf0f0f0);
     
     const envMap = pmremGenerator.fromScene(envScene).texture;
     scene.environment = envMap;
@@ -114,10 +113,10 @@ function BlobCore({ scrollProgress, sectionIndex }: { scrollProgress: number; se
 
   return (
     <group position={[0, 0, -2]}>
-      {/* 高品質ライティング */}
+      {/* 明るい環境用ライティング */}
       <directionalLight
-        position={[3, 5, 4]}
-        intensity={1.2}
+        position={[5, 8, 5]}
+        intensity={2.5}
         castShadow
         shadow-mapSize-width={4096}
         shadow-mapSize-height={4096}
@@ -127,9 +126,9 @@ function BlobCore({ scrollProgress, sectionIndex }: { scrollProgress: number; se
         shadow-camera-top={10}
         shadow-camera-bottom={-10}
       />
-      <ambientLight intensity={0.15} />
+      <ambientLight intensity={0.4} />
       <hemisphereLight
-        args={[0x9bd4d3, 0x1a1a1a, 0.3]}
+        args={[0xffffff, 0xe5e5e5, 0.6]}
       />
       
       {/* メインBlob */}
@@ -148,7 +147,7 @@ function BlobCore({ scrollProgress, sectionIndex }: { scrollProgress: number; se
         receiveShadow
       >
         <planeGeometry args={[10, 10]} />
-        <shadowMaterial opacity={0.25} />
+        <shadowMaterial opacity={0.15} />
       </mesh>
     </group>
   );
@@ -174,7 +173,7 @@ export default function PremiumBlob({ scrollProgress, sectionIndex, className = 
         }}
         shadows="soft"
         onCreated={({ gl }) => {
-          gl.setClearColor(0x000000, 0);
+          gl.setClearColor(0xffffff, 0);
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
@@ -183,7 +182,7 @@ export default function PremiumBlob({ scrollProgress, sectionIndex, className = 
         
         {/* ポストプロセス: Bloom効果 */}
         <EffectComposer>
-          <Bloom intensity={0.55} luminanceThreshold={0.8} luminanceSmoothing={0.85} />
+          <Bloom intensity={0.3} luminanceThreshold={0.9} luminanceSmoothing={0.9} />
         </EffectComposer>
       </Canvas>
     </div>
