@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
     "@google/genai": "^1.11.0",
     "@react-three/drei": "^10.6.1",
     "@react-three/fiber": "^9.3.0",

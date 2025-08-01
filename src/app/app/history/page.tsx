@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import HistoryCard from '@/components/HistoryCard';
-import MEDSJsonViewer from '@/components/MEDSJsonViewer';
+import KVPreview from '@/components/KVPreview';
 import { supabase } from '@/lib/supabase/client';
 // Generic spec type for history items
 type GenericSpec = Record<string, unknown>;
@@ -175,7 +175,7 @@ export default function HistoryPage() {
         {/* Full Width JSON Viewer */}
         <div className="p-4 lg:p-6 h-full">
           {selectedItem.spec ? (
-            <MEDSJsonViewer
+            <KVPreview
               spec={selectedItem.spec}
               fileName={selectedItem.fileName}
               fileSize={selectedItem.fileSize}
