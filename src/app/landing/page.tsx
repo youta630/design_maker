@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import GoogleAuthButton from '@/components/landing/GoogleAuthButton';
-import PremiumRubiksCube from '@/components/landing/PremiumRubiksCube';
+import PremiumBlob from '@/components/landing/PremiumBlob';
 import { useScrollProgress } from '@/components/landing/useScrollProgress';
 
 export default function LandingPage() {
@@ -33,10 +33,10 @@ export default function LandingPage() {
       
       {/* Enhanced 3D Background */}
       {isClient && (
-        <PremiumRubiksCube 
+        <PremiumBlob 
           scrollProgress={scrollProgress + mousePosition.x * 0.1}
           sectionIndex={0}
-          className="opacity-30"
+          className="opacity-60"
         />
       )}
 
@@ -123,29 +123,23 @@ export default function LandingPage() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen px-6">
-        <div className="absolute inset-0">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
+        <div className="text-center">
           
           {/* Animated Logo/Title */}
           <motion.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="mb-12"
+            className="mb-8"
           >
             <motion.h1 
-              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[12rem] 2xl:text-[16rem] font-black tracking-tighter leading-none"
+              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl xl:text-[10rem] 2xl:text-[12rem] font-black tracking-tighter leading-none"
               style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
             >
-              <div className="absolute top-8 sm:top-12 md:top-16 left-4 sm:left-6 md:left-8">
-                <span className="text-white block">snap</span>
-              </div>
-              <div className="absolute top-20 sm:top-24 md:top-32 lg:top-48 left-16 sm:left-20 md:left-32">
-                <span className="text-green-400 block">2</span>
-              </div>
-              <div className="absolute bottom-8 sm:bottom-12 md:bottom-16 left-1/4 sm:left-1/3">
-                <span className="text-white block">spec</span>
-              </div>
+              <span className="text-white">snap</span>
+              <span className="text-green-400">2</span>
+              <span className="text-white">spec</span>
             </motion.h1>
             
             {/* Animated Subtitle */}
@@ -153,31 +147,25 @@ export default function LandingPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 1 }}
-              className="space-y-4"
+              className="mt-6"
             >
-              
-              <motion.div
-                className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-4 sm:left-6 md:left-8 text-green-400"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
+              <motion.p 
+                className="text-gray-400 text-sm sm:text-base md:text-lg lg:text-xl font-mono tracking-widest"
+                animate={{ opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 3, repeat: Infinity }}
               >
-                <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-mono tracking-widest">COMING SOON</span>
-              </motion.div>
+                Design Workflow Revolution
+              </motion.p>
             </motion.div>
-          </motion.div>
 
-
-          {/* Space-like scattered text */}
-          <motion.div
-            className="absolute top-1/4 left-1/2 transform -translate-x-1/2 text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2 }}
-          >
-            <span className="text-gray-400 text-sm sm:text-base md:text-lg font-mono tracking-widest">
-              Design Workflow Revolution
-            </span>
+            <motion.div
+              className="mt-8 text-green-400"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+            >
+              <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-mono tracking-widest">COMING SOON</span>
+            </motion.div>
           </motion.div>
         </div>
       </div>
