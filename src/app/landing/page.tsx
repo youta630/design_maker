@@ -4,12 +4,10 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import GoogleAuthButton from '@/components/landing/GoogleAuthButton';
 import PremiumBlob from '@/components/landing/PremiumBlob';
-import { useScrollProgress } from '@/components/landing/useScrollProgress';
 
 export default function LandingPage() {
   const [isClient, setIsClient] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const scrollProgress = useScrollProgress();
   
   useEffect(() => {
     setIsClient(true);
@@ -34,7 +32,7 @@ export default function LandingPage() {
       {/* Enhanced 3D Background */}
       {isClient && (
         <PremiumBlob 
-          scrollProgress={scrollProgress + mousePosition.x * 0.1}
+          scrollProgress={mousePosition.x * 0.1}
           sectionIndex={0}
           className="opacity-60"
         />
