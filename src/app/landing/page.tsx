@@ -76,33 +76,6 @@ export default function LandingPage() {
           }} />
         </div>
 
-        {/* Gradient Orbs */}
-        <motion.div
-          className="absolute top-1/4 left-1/4 w-96 h-96 bg-green-500/20 rounded-full blur-3xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            x: mousePosition.x * 50,
-            y: mousePosition.y * 50,
-          }}
-          transition={{
-            scale: { duration: 4, repeat: Infinity },
-            x: { duration: 0.5 },
-            y: { duration: 0.5 }
-          }}
-        />
-        <motion.div
-          className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            x: mousePosition.x * -30,
-            y: mousePosition.y * -30,
-          }}
-          transition={{
-            scale: { duration: 3, repeat: Infinity },
-            x: { duration: 0.7 },
-            y: { duration: 0.7 }
-          }}
-        />
       </div>
 
       {/* Fixed Google Auth Button */}
@@ -116,8 +89,8 @@ export default function LandingPage() {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-6">
-        <div className="text-center max-w-4xl">
+      <div className="relative z-10 min-h-screen px-6">
+        <div className="absolute inset-0">
           
           {/* Animated Logo/Title */}
           <motion.div
@@ -127,19 +100,18 @@ export default function LandingPage() {
             className="mb-12"
           >
             <motion.h1 
-              className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tight mb-8"
-              animate={{
-                textShadow: [
-                  '0 0 20px rgba(34, 197, 94, 0.5)',
-                  '0 0 30px rgba(34, 197, 94, 0.8)',
-                  '0 0 20px rgba(34, 197, 94, 0.5)'
-                ]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
+              className="text-8xl md:text-9xl lg:text-[12rem] xl:text-[16rem] font-black tracking-tighter leading-none"
+              style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
             >
-              <span className="text-white">snap</span>
-              <span className="text-green-400">2</span>
-              <span className="text-white">spec</span>
+              <div className="absolute top-16 left-8">
+                <span className="text-white block">snap</span>
+              </div>
+              <div className="absolute top-32 md:top-48 right-8">
+                <span className="text-green-400 block">2</span>
+              </div>
+              <div className="absolute bottom-16 left-1/3">
+                <span className="text-white block">spec</span>
+              </div>
             </motion.h1>
             
             {/* Animated Subtitle */}
@@ -150,106 +122,34 @@ export default function LandingPage() {
               className="space-y-4"
             >
               <motion.p 
-                className="text-xl md:text-2xl text-gray-300 font-light"
-                animate={{ opacity: [0.7, 1, 0.7] }}
-                transition={{ duration: 3, repeat: Infinity }}
+                className="absolute top-1/2 right-12 text-2xl md:text-4xl text-gray-300 font-light max-w-md text-right leading-relaxed"
+                style={{ transform: 'rotate(-90deg)', transformOrigin: 'right center' }}
               >
                 画像から瞬時にUI仕様書を生成
               </motion.p>
               
               <motion.div
-                className="flex items-center justify-center space-x-4 text-green-400"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 1, type: "spring", stiffness: 200 }}
+                className="absolute bottom-8 left-8 text-green-400"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
               >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                  className="w-2 h-2 bg-green-400 rounded-full"
-                />
-                <span className="text-sm tracking-wider">COMING SOON</span>
-                <motion.div
-                  animate={{ rotate: -360 }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                  className="w-2 h-2 bg-green-400 rounded-full"
-                />
+                <span className="text-3xl md:text-5xl font-mono tracking-widest">COMING SOON</span>
               </motion.div>
             </motion.div>
           </motion.div>
 
-          {/* Floating Action Elements */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 1.5, duration: 0.8 }}
-            className="relative"
-          >
-            {/* Animated Ring */}
-            <motion.div
-              className="absolute inset-0 border-2 border-green-500/30 rounded-full"
-              animate={{
-                scale: [1, 1.1, 1],
-                rotate: [0, 360]
-              }}
-              transition={{
-                scale: { duration: 2, repeat: Infinity },
-                rotate: { duration: 20, repeat: Infinity, ease: "linear" }
-              }}
-              style={{ width: '200px', height: '200px', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
-            />
-            
-            {/* Center Pulse */}
-            <motion.div
-              className="relative z-10 w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-green-500 to-blue-500 flex items-center justify-center"
-              animate={{
-                scale: [1, 1.05, 1],
-                boxShadow: [
-                  '0 0 20px rgba(34, 197, 94, 0.5)',
-                  '0 0 40px rgba(34, 197, 94, 0.8)',
-                  '0 0 20px rgba(34, 197, 94, 0.5)'
-                ]
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <motion.svg 
-                className="w-12 h-12 text-white" 
-                fill="currentColor" 
-                viewBox="0 0 20 20"
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <path fillRule="evenodd" d="M10 3l7 4v6l-7 4-7-4V7l7-4z" clipRule="evenodd" />
-              </motion.svg>
-            </motion.div>
-          </motion.div>
 
-          {/* Animated Bottom Text */}
+          {/* Space-like scattered text */}
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2, duration: 1 }}
-            className="mt-16 space-y-4"
+            className="absolute top-1/4 left-1/2 transform -translate-x-1/2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2 }}
           >
-            <motion.p 
-              className="text-gray-400 text-sm tracking-wide"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 4, repeat: Infinity }}
-            >
-              Revolutionizing Design Workflow
-            </motion.p>
-            
-            {/* Animated Progress Bar */}
-            <div className="w-64 h-1 bg-gray-800 rounded-full mx-auto overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-green-500 to-blue-500"
-                initial={{ width: 0 }}
-                animate={{ width: "100%" }}
-                transition={{ delay: 2.5, duration: 3, ease: "easeInOut" }}
-              />
-            </div>
+            <span className="text-gray-400 text-lg font-mono tracking-widest">
+              Design Workflow Revolution
+            </span>
           </motion.div>
         </div>
       </div>
